@@ -1,1165 +1,2692 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>《AI會取代人類智慧嗎？》互動式全書導讀</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Noto Sans TC', sans-serif;
-            background-color: #f4f7fb;
-            color: #1e293b;
-        }
-        /* 自訂捲軸樣式 */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #f1f5f9;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #cbd5e1;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #94a3b8;
-        }
-        .step-badge {
-            box-shadow: 0 4px 12px rgba(15, 41, 66, 0.25);
-        }
-        .card-transition {
-            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-        .card-transition:hover {
-            transform: translateY(-2px);
-        }
-        .active-tab {
-            background-color: #0f2942;
-            color: #ffffff;
-            box-shadow: 0 4px 12px rgba(15, 41, 66, 0.3);
-        }
-        .flow-line {
-            background: linear-gradient(180deg, #0f2942 0%, #0d9488 100%);
-        }
-        @keyframes pulse-soft {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-        .animate-pulse-soft {
-            animation: pulse-soft 2.5s infinite;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rafael Iron Beam 鐵束高能雷射防禦系統 - 實機圖解與 3D 互動科技中心</title>
+  <!-- Three.js and OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <style>
+    :root {
+      --bg-dark: #080c14;
+      --panel-bg: rgba(10, 18, 30, 0.88);
+      --panel-border: rgba(0, 229, 255, 0.25);
+      --accent-cyan: #00f0ff;
+      --accent-gold: #ffb703;
+      --accent-red: #ff0055;
+      --accent-laser: #ff2a2a;
+      --accent-green: #00ff88;
+      --text-main: #e2f1ff;
+      --text-muted: #8ea4be;
+      --font-mono: "SF Mono", "Fira Code", "Courier New", monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+      overflow: hidden;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* 3D Canvas */
+    #canvas-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+
+    /* Top HUD Header */
+    header {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 64px;
+      background: linear-gradient(180deg, rgba(8, 12, 20, 0.98) 0%, rgba(8, 12, 20, 0.8) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 50;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+      backdrop-filter: blur(12px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: rgba(0, 255, 136, 0.12);
+      border: 1px solid var(--accent-green);
+      color: var(--accent-green);
+      padding: 4px 8px;
+      border-radius: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .badge-live::before {
+      content: '';
+      width: 6px;
+      height: 6px;
+      background: var(--accent-green);
+      border-radius: 50%;
+      animation: blink 1.2s infinite;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.2; }
+    }
+
+    h1 {
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    h1 span {
+      font-size: 13px;
+      color: var(--accent-cyan);
+      font-weight: 400;
+      border-left: 1px solid rgba(255,255,255,0.3);
+      padding-left: 10px;
+    }
+
+    /* Primary Navigation (3 Core Modules) */
+    .nav-sections {
+      display: flex;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .nav-btn {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.25s;
+      border: 1px solid transparent;
+    }
+
+    .nav-btn:hover {
+      color: #fff;
+      background: rgba(0, 240, 255, 0.08);
+    }
+
+    .nav-btn.active {
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(0, 119, 255, 0.35));
+      border-color: var(--accent-cyan);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+    }
+
+    .top-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn-audio {
+      background: rgba(0, 240, 255, 0.1);
+      border: 1px solid var(--accent-cyan);
+      color: var(--accent-cyan);
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-audio:hover {
+      background: var(--accent-cyan);
+      color: #000;
+    }
+
+    /* =========================================================================
+       SECTION 1: REAL PHOTO GALLERY & ANATOMY VIEW
+       ========================================================================= */
+    #view-photos {
+      position: absolute;
+      top: 64px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(6, 10, 18, 0.94);
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(16px);
+      transition: opacity 0.3s, visibility 0.3s;
+      overflow-y: auto;
+    }
+
+    .gallery-container {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      width: 100%;
+    }
+
+    .gallery-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      border-bottom: 1px solid rgba(0, 240, 255, 0.2);
+      padding-bottom: 12px;
+    }
+
+    .gallery-header h2 {
+      font-size: 20px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .gallery-header p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .gallery-main-stage {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 24px;
+      background: rgba(12, 20, 32, 0.7);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+
+    /* Photo Display Box with Interactive Hotspot Pins */
+    .photo-display-box {
+      position: relative;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      min-height: 440px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .photo-display-box img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      display: block;
+      transition: transform 0.3s;
+    }
+
+    /* Interactive Callout Pin on Photo */
+    .photo-hotspot {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      transform: translate(-50%, -50%);
+      cursor: pointer;
+      z-index: 5;
+    }
+
+    .photo-hotspot-inner {
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 240, 255, 0.3);
+      border: 2px solid var(--accent-cyan);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #fff;
+      font-size: 12px;
+      font-weight: bold;
+      box-shadow: 0 0 12px var(--accent-cyan);
+      animation: pulse-pin 1.5s infinite;
+      transition: transform 0.2s;
+    }
+
+    .photo-hotspot:hover .photo-hotspot-inner,
+    .photo-hotspot.active .photo-hotspot-inner {
+      background: var(--accent-gold);
+      border-color: #fff;
+      color: #000;
+      transform: scale(1.2);
+    }
+
+    @keyframes pulse-pin {
+      0% { transform: scale(1); box-shadow: 0 0 8px var(--accent-cyan); }
+      50% { transform: scale(1.15); box-shadow: 0 0 18px var(--accent-cyan); }
+      100% { transform: scale(1); box-shadow: 0 0 8px var(--accent-cyan); }
+    }
+
+    /* Photo Explanation Sidebar */
+    .photo-explanation-card {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .photo-info-top h3 {
+      font-size: 18px;
+      color: var(--accent-cyan);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .photo-source-badge {
+      display: inline-block;
+      font-size: 11px;
+      font-family: var(--font-mono);
+      background: rgba(255, 183, 3, 0.15);
+      border: 1px solid var(--accent-gold);
+      color: var(--accent-gold);
+      padding: 3px 8px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+
+    .photo-desc-text {
+      font-size: 13px;
+      line-height: 1.7;
+      color: var(--text-main);
+    }
+
+    .hotspot-details-box {
+      background: rgba(0, 0, 0, 0.4);
+      border-left: 3px solid var(--accent-gold);
+      padding: 12px;
+      border-radius: 0 6px 6px 0;
+      margin-top: 12px;
+    }
+
+    .hotspot-details-box h4 {
+      font-size: 13px;
+      color: var(--accent-gold);
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .hotspot-details-box p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    .jump-to-3d-btn {
+      padding: 12px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 119, 255, 0.3));
+      border: 1px solid var(--accent-cyan);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+
+    .jump-to-3d-btn:hover {
+      background: var(--accent-cyan);
+      color: #080c14;
+      box-shadow: 0 0 20px rgba(0, 240, 255, 0.5);
+    }
+
+    /* Thumbnails strip below main stage */
+    .photo-thumbnails-strip {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 14px;
+    }
+
+    .thumb-card {
+      background: rgba(12, 20, 32, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 8px;
+      cursor: pointer;
+      transition: all 0.25s;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .thumb-card:hover {
+      border-color: var(--accent-cyan);
+      transform: translateY(-3px);
+    }
+
+    .thumb-card.active {
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.3);
+      background: rgba(0, 240, 255, 0.1);
+    }
+
+    .thumb-img-wrapper {
+      height: 90px;
+      border-radius: 4px;
+      overflow: hidden;
+      background: #000;
+    }
+
+    .thumb-img-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .thumb-card span {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+      text-align: center;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* =========================================================================
+       SECTION 2: TECH SPECS & SUBSYSTEMS FULL VIEW
+       ========================================================================= */
+    #view-tech {
+      position: absolute;
+      top: 64px;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(6, 10, 18, 0.94);
+      z-index: 25;
+      display: none;
+      flex-direction: column;
+      backdrop-filter: blur(16px);
+      overflow-y: auto;
+      padding: 30px 20px;
+    }
+
+    .tech-overview-container {
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .grid-2col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    .tech-full-card {
+      background: rgba(12, 20, 32, 0.7);
+      border: 1px solid var(--panel-border);
+      border-radius: 10px;
+      padding: 20px;
+    }
+
+    .tech-full-card h3 {
+      font-size: 16px;
+      color: var(--accent-cyan);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Comparison Table (Iron Beam vs Iron Dome) */
+    .compare-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      margin-top: 10px;
+    }
+
+    .compare-table th {
+      background: rgba(0, 240, 255, 0.1);
+      color: var(--accent-cyan);
+      padding: 10px;
+      text-align: left;
+      border-bottom: 2px solid var(--accent-cyan);
+    }
+
+    .compare-table td {
+      padding: 10px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--text-main);
+    }
+
+    .compare-table tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* The 4-Tier Interactive Subsystem Cards */
+    .tier-cards-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 12px;
+    }
+
+    .tier-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: all 0.25s;
+      cursor: pointer;
+    }
+
+    .tier-card:hover {
+      border-color: var(--accent-cyan);
+      transform: translateY(-4px);
+      background: rgba(0, 240, 255, 0.08);
+    }
+
+    .tier-icon {
+      font-size: 24px;
+    }
+
+    .tier-card h4 {
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .tier-card p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .tier-btn-view {
+      font-size: 11px;
+      color: var(--accent-cyan);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-weight: 600;
+    }
+
+    /* =========================================================================
+       SECTION 3: 3D INTERACTIVE SIMULATION & RETICLE
+       ========================================================================= */
+    #reticle-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 5;
+    }
+
+    .cursor-crosshair {
+      position: absolute;
+      width: 48px;
+      height: 48px;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      display: none;
+    }
+
+    .cursor-crosshair::before, .cursor-crosshair::after {
+      content: '';
+      position: absolute;
+      border: 1px solid var(--accent-cyan);
+      box-shadow: 0 0 8px var(--accent-cyan);
+    }
+    .cursor-crosshair::before {
+      top: 0; left: 0; right: 0; bottom: 0;
+      border-radius: 50%;
+    }
+    .cursor-crosshair.locked::before {
+      border-color: var(--accent-red);
+      box-shadow: 0 0 14px var(--accent-red);
+      animation: pulse-ring 0.6s infinite alternate;
+    }
+    .cursor-crosshair.locked::after {
+      top: 50%; left: 50%; width: 6px; height: 6px;
+      background: var(--accent-red);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    @keyframes pulse-ring {
+      from { transform: scale(0.9); opacity: 0.7; }
+      to { transform: scale(1.2); opacity: 1; }
+    }
+
+    /* Left Control & Kill Chain Overlay (Inside 3D) */
+    .left-panel {
+      position: absolute;
+      top: 80px;
+      left: 20px;
+      width: 320px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 16px;
+      backdrop-filter: blur(12px);
+      z-index: 10;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: var(--accent-cyan);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .mode-subtabs {
+      display: flex;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      padding: 2px;
+      margin-bottom: 12px;
+    }
+
+    .mode-subtab {
+      flex: 1;
+      text-align: center;
+      padding: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-radius: 4px;
+      transition: all 0.2s;
+    }
+
+    .mode-subtab.active {
+      background: var(--accent-cyan);
+      color: #080c14;
+    }
+
+    /* Kill chain step indicators */
+    .killchain-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .step-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 9px 11px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .step-item.active {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+      box-shadow: 0 0 15px rgba(0, 240, 255, 0.2);
+    }
+
+    .step-item.completed {
+      border-color: rgba(0, 255, 136, 0.4);
+      background: rgba(0, 255, 136, 0.08);
+    }
+
+    .step-number {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: bold;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+      flex-shrink: 0;
+    }
+
+    .step-item.active .step-number {
+      background: var(--accent-cyan);
+      color: #080c14;
+    }
+    .step-item.completed .step-number {
+      background: var(--accent-green);
+      color: #080c14;
+    }
+
+    .step-content h4 {
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .step-content p {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.4;
+    }
+
+    .step-actions {
+      display: flex;
+      gap: 8px;
+    }
+
+    .btn-step-action {
+      flex: 1;
+      padding: 10px;
+      background: linear-gradient(135deg, rgba(0, 240, 255, 0.2), rgba(0, 119, 255, 0.3));
+      border: 1px solid var(--accent-cyan);
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-step-action:hover {
+      background: var(--accent-cyan);
+      color: #080c14;
+      box-shadow: 0 0 16px rgba(0, 240, 255, 0.5);
+    }
+
+    .btn-fire-hold {
+      background: linear-gradient(135deg, rgba(255, 0, 85, 0.3), rgba(255, 50, 50, 0.5));
+      border-color: var(--accent-red);
+      color: #fff;
+    }
+    .btn-fire-hold:hover, .btn-fire-hold.firing {
+      background: var(--accent-red);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(255, 0, 85, 0.8);
+    }
+
+    /* Sandbox Controls */
+    .sandbox-controls {
+      display: none;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .control-row {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .control-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .control-slider {
+      width: 100%;
+      height: 5px;
+      accent-color: var(--accent-cyan);
+    }
+
+    .target-spawn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+    }
+
+    .btn-spawn {
+      padding: 7px 8px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      font-size: 11px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-spawn:hover {
+      background: rgba(0, 240, 255, 0.15);
+      border-color: var(--accent-cyan);
+      color: var(--accent-cyan);
+    }
+
+    /* Target Telemetry Box */
+    .target-pip-box {
+      margin-top: 12px;
+      border: 1px solid rgba(255, 0, 85, 0.3);
+      background: rgba(20, 5, 10, 0.7);
+      border-radius: 6px;
+      padding: 8px;
+    }
+
+    .pip-header {
+      font-size: 10px;
+      font-family: var(--font-mono);
+      color: var(--accent-red);
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .pip-heat-bar {
+      width: 100%;
+      height: 8px;
+      background: rgba(0, 0, 0, 0.6);
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+      margin-top: 4px;
+    }
+
+    .pip-heat-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #ffbb00 0%, #ff5500 50%, #ff0055 85%, #ffffff 100%);
+      transition: width 0.1s linear;
+      box-shadow: 0 0 10px rgba(255, 85, 0, 0.8);
+    }
+
+    /* Bottom HUD Operational Log */
+    .bottom-hud {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(720px, 90vw);
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: 8px;
+      padding: 10px 18px;
+      backdrop-filter: blur(12px);
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-family: var(--font-mono);
+      font-size: 11px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--accent-green);
+      box-shadow: 0 0 8px var(--accent-green);
+    }
+
+    .tactical-log {
+      color: var(--accent-cyan);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 440px;
+    }
+
+    /* 3D Component Annotations in 3D Scene */
+    .component-annotation {
+      position: absolute;
+      background: rgba(10, 20, 35, 0.88);
+      border: 1px solid var(--accent-cyan);
+      padding: 5px 10px;
+      border-radius: 4px;
+      font-size: 11px;
+      color: #fff;
+      pointer-events: none;
+      transform: translate(-50%, -100%);
+      white-space: nowrap;
+      font-family: var(--font-mono);
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: 20;
+    }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col">
-
-    <!-- 頂部書籍標題與導覽區 -->
-    <header class="bg-[#0f2942] text-white sticky top-0 z-50 shadow-lg border-b border-slate-700">
-        <div class="max-w-6xl mx-auto px-4 py-3 sm:px-6 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-            <div>
-                <div class="flex items-center gap-2">
-                    <span class="px-2.5 py-0.5 text-xs font-bold bg-amber-400 text-slate-900 rounded-full">互動式讀書會導讀</span>
-                    <span class="text-xs text-slate-300">作者：丹尼爾·安德勒 (Daniel Andler)</span>
-                </div>
-                <h1 class="text-lg sm:text-xl font-black tracking-tight mt-1 text-white">
-                    《AI會取代人類智慧嗎？：人工智能與人類智慧的雙重謎團》
-                </h1>
-            </div>
-            <div class="flex items-center gap-2 text-xs text-slate-300 bg-slate-800/70 px-3 py-2 rounded-lg border border-slate-700 self-start md:self-auto">
-                <span class="inline-block w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>點擊下方章節與卡片，展開深度白話解析</span>
-            </div>
-        </div>
-
-        <!-- Ch01 ~ Ch10 分頁導覽列 -->
-        <div class="bg-slate-900/90 border-t border-slate-800">
-            <div class="max-w-6xl mx-auto px-4 sm:px-6 py-2.5 overflow-x-auto">
-                <div class="flex items-center space-x-2 min-w-max" id="chapter-tabs">
-                    <!-- 由 JS 動態生成 Ch01-Ch10 按鈕 -->
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- 主要內容區塊 -->
-    <main class="flex-grow max-w-5xl w-full mx-auto px-4 sm:px-6 py-8">
-
-        <!-- ==========================================
-             CH06 內容區塊：人工智慧與人類智慧的比較
-             ========================================== -->
-        <section id="content-ch06" class="chapter-section space-y-8">
-            
-            <!-- 章節大標題橫幅 -->
-            <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 text-center relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-[#0f2942] via-teal-600 to-amber-500"></div>
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold mb-3">
-                    <span>第二部：人類智慧與人工智慧的面對面</span>
-                    <span>•</span>
-                    <span>安德勒的論證路線</span>
-                </div>
-                <h2 class="text-2xl sm:text-4xl font-black text-[#0f2942] tracking-tight">
-                    Ch06｜人工智慧與人類智慧的比較
-                </h2>
-                <p class="mt-3 inline-block bg-sky-100 text-[#0f2942] font-bold px-5 py-1.5 rounded-full text-sm sm:text-base">
-                    從接受比較，到重新檢查智慧的定義
-                </p>
-                <p class="mt-4 text-slate-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-                    當 AI 下棋贏過人類、甚至能寫文章畫圖，我們很容易問：「AI 快要追上人類智慧了嗎？」安德勒在本章帶我們退一步思考：當我們把兩者放在同一個天秤上比較「解題表現」時，是不是一開始就問錯了問題？
-                </p>
-            </div>
-
-            <!-- 步驟時間軸容器 -->
-            <div class="relative space-y-8 before:hidden md:before:block before:absolute before:top-10 before:bottom-10 before:left-[104px] before:w-1 before:bg-slate-300">
-
-                <!-- Step 1: 6.1-6.2 重新提出問題 -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <!-- 左側深藍階段卡 -->
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-white text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">1</span>
-                            <span class="text-xs font-medium text-sky-200 tracking-wider uppercase">起點｜6.1-6.2</span>
-                        </div>
-                        <h3 class="text-lg sm:text-xl font-bold tracking-wide">重新提出問題</h3>
-                    </div>
-
-                    <!-- 右側內容卡 -->
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
-                        <h4 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                            <span>AI 的驚人表現，是否代表它正走向人類智慧？</span>
-                        </h4>
-                        <p class="text-sm text-slate-600">
-                            面對 AI 浪潮，安德勒要求我們先把兩個常被混為一談的問題拆開來看（點擊下方卡片查看作者態度）：
-                        </p>
-
-                        <!-- 互動雙問題卡片 -->
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <button onclick="toggleCh06Q1('a')" id="btn-ch06-q1a" class="card-transition text-left p-4 rounded-xl bg-sky-50 hover:bg-sky-100 border-2 border-sky-300 focus:outline-none">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="text-xs font-bold text-sky-700 bg-sky-200/70 px-2 py-0.5 rounded">問題一：工程與自動化</span>
-                                    <span class="text-xs text-sky-600 font-semibold">點擊解析 ▼</span>
-                                </div>
-                                <p class="font-bold text-[#0f2942] text-base mt-1">認知功能能否持續自動化？</p>
-                                <div id="desc-ch06-q1a" class="mt-3 pt-3 border-t border-sky-200 text-xs sm:text-sm text-slate-700 space-y-1">
-                                    <p class="font-bold text-emerald-700">✔ 作者態度：對此保持樂觀</p>
-                                    <p>在特定規則明確的領域（如醫療影像判讀、翻譯、路線規劃、遊戲），AI 自動化處理資訊的能力確實會不斷突破並擴大應用。</p>
-                                </div>
-                            </button>
-
-                            <button onclick="toggleCh06Q1('b')" id="btn-ch06-q1b" class="card-transition text-left p-4 rounded-xl bg-sky-50 hover:bg-sky-100 border-2 border-sky-300 focus:outline-none">
-                                <div class="flex items-center justify-between mb-1">
-                                    <span class="text-xs font-bold text-sky-700 bg-sky-200/70 px-2 py-0.5 rounded">問題二：本質與通用性</span>
-                                    <span class="text-xs text-sky-600 font-semibold">點擊解析 ▼</span>
-                                </div>
-                                <p class="font-bold text-[#0f2942] text-base mt-1">是否能達成人類式智慧？</p>
-                                <div id="desc-ch06-q1b" class="mt-3 pt-3 border-t border-sky-200 text-xs sm:text-sm text-slate-700 space-y-1">
-                                    <p class="font-bold text-rose-700">✖ 作者態度：對此高度懷疑</p>
-                                    <p>完成一個個認知任務的自動化，不等於機器就擁有了「人類式的整體智慧（AGI）」。兩者之間存在概念上的鴻溝。</p>
-                                </div>
-                            </button>
-                        </div>
-
-                        <!-- 底部黃色總結條 -->
-                        <div class="bg-amber-100/90 border border-amber-300 text-amber-950 px-4 py-3 rounded-xl text-sm font-bold text-center">
-                            💡 核心結論：作者對「認知功能持續自動化」樂觀，但對「達成人類式智慧」懷疑。
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 2: 6.3 盤點立場 -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-white text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">2</span>
-                            <span class="text-xs font-medium text-sky-200 tracking-wider uppercase">第一階段｜6.3</span>
-                        </div>
-                        <h3 class="text-lg sm:text-xl font-bold tracking-wide">盤點立場</h3>
-                    </div>
-
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <h4 class="text-lg font-bold text-slate-800">
-                                「運氣」寓言：名稱背後，是否有可辨識的能力？
-                            </h4>
-                            <button onclick="toggleModal('fable-modal')" class="text-xs bg-slate-100 hover:bg-slate-200 text-[#0f2942] font-bold px-3 py-1.5 rounded-lg border border-slate-300 transition self-start">
-                                📖 什麼是「運氣」寓言？
-                            </button>
-                        </div>
-
-                        <p class="text-xs sm:text-sm text-slate-600">
-                            我們都有「人類智慧」跟「人工智慧」這兩個詞，但它們真的指向某種實存的、可界定的單一能力嗎？點擊下方四宮格，看看學界與大眾的四種立場：
-                        </p>
-
-                        <!-- 互動四宮格矩陣 -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full border-collapse text-sm text-center rounded-xl overflow-hidden border border-slate-300">
-                                <thead>
-                                    <tr class="bg-sky-100 text-[#0f2942] font-bold">
-                                        <th class="p-3 border border-slate-300 w-1/4 bg-slate-100">概念存廢矩陣</th>
-                                        <th class="p-3 border border-slate-300 w-3/8">AI 概念保留<br><span class="text-xs font-normal text-slate-600">（承認 AI 是一種實存系統）</span></th>
-                                        <th class="p-3 border border-slate-300 w-3/8">AI 概念否認<br><span class="text-xs font-normal text-slate-600">（認為 AI 只是行銷口號或統計工具）</span></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="p-3 border border-slate-300 font-bold bg-sky-50 text-[#0f2942]">
-                                            人類智慧保留<br><span class="text-xs font-normal text-slate-600">（承認人有獨特智慧）</span>
-                                        </td>
-                                        <td class="p-2 border border-slate-300">
-                                            <button onclick="selectMatrix(1)" id="matrix-btn-1" class="w-full h-full py-3 px-2 rounded-lg bg-amber-300 hover:bg-amber-400 text-slate-900 font-black shadow-sm transition ring-2 ring-amber-500">
-                                                ★ 第四格：接受比較<br>
-                                                <span class="text-xs font-semibold">（作者暫採的方法論起點）</span>
-                                            </button>
-                                        </td>
-                                        <td class="p-2 border border-slate-300">
-                                            <button onclick="selectMatrix(2)" id="matrix-btn-2" class="w-full h-full py-3 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold transition">
-                                                保留人、否認 AI<br>
-                                                <span class="text-xs font-normal text-slate-500">（點擊看解析）</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <td class="p-3 border border-slate-300 font-bold bg-sky-50 text-[#0f2942]">
-                                            人類智慧否認<br><span class="text-xs font-normal text-slate-600">（認為智慧只是幻覺或標籤）</span>
-                                        </td>
-                                        <td class="p-2 border border-slate-300">
-                                            <button onclick="selectMatrix(3)" id="matrix-btn-3" class="w-full h-full py-3 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold transition">
-                                                否認人、保留 AI<br>
-                                                <span class="text-xs font-normal text-slate-500">（點擊看解析）</span>
-                                            </button>
-                                        </td>
-                                        <td class="p-2 border border-slate-300">
-                                            <button onclick="selectMatrix(4)" id="matrix-btn-4" class="w-full h-full py-3 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold transition">
-                                                雙重否認<br>
-                                                <span class="text-xs font-normal text-slate-500">（點擊看解析）</span>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- 矩陣點擊解說顯示區 -->
-                        <div id="matrix-explanation" class="bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700">
-                            <span class="font-bold text-[#0f2942]">【第四格：接受比較（作者的策略起點）】</span>
-                            這裡的「存在」是指具有可界定的特性或能力。安德勒決定<strong>暫時保留「人類智慧」與「人工智慧」兩個概念</strong>，不急著一開始就宣布某一方不存在，而是先進入比較，在比較過程中看清楚它們各自的真實面貌。
-                        </div>
-
-                        <div class="bg-amber-100/90 border border-amber-300 text-amber-950 px-4 py-3 rounded-xl text-sm font-bold text-center">
-                            💡 作者暫時保留兩個概念，在比較中釐清它們。
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 3: 6.4 比較解題能力 -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-white text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">3</span>
-                            <span class="text-xs font-medium text-sky-200 tracking-wider uppercase">第二階段｜6.4</span>
-                        </div>
-                        <h3 class="text-lg sm:text-xl font-bold tracking-wide">比較解題能力</h3>
-                    </div>
-
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
-                        <div class="text-center">
-                            <div class="inline-block bg-sky-200/80 text-[#0f2942] font-black px-6 py-2 rounded-xl text-base sm:text-lg">
-                                暫定：智慧 ＝ 解決問題的能力
-                            </div>
-                            <p class="text-xs sm:text-sm text-slate-600 mt-2 font-medium">
-                                既然世界上「問題」多到難以列完與計數 ➔ 學者們轉向研究背後的「機制」與「領域」
-                            </p>
-                        </div>
-
-                        <!-- 途徑 A 與 途徑 B 比較卡 -->
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- 途徑 A -->
-                            <div class="border-2 border-teal-700/30 rounded-xl overflow-hidden flex flex-col">
-                                <div class="bg-teal-700 text-white px-4 py-2.5 font-bold flex items-center justify-between">
-                                    <span>⚙️ 途徑 A｜內部機制</span>
-                                    <span class="text-xs bg-teal-800 px-2 py-0.5 rounded">硬體與演算法視角</span>
-                                </div>
-                                <div class="p-4 bg-white flex-1 flex flex-col justify-between space-y-3 text-sm">
-                                    <ul class="space-y-2 text-slate-700 list-disc pl-4">
-                                        <li><strong>核心追問：</strong>人類認知是否涉及「非演算法」歷程？</li>
-                                        <li><strong>經典論據：</strong>檢查哥德爾不完備定理、大腦生物構造、人類內省經驗三類論據。</li>
-                                        <li><strong>遭遇瓶頸：</strong>大腦描述層次與潛伏歷程太複雜，使推論仍有缺口。</li>
-                                    </ul>
-                                    <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 p-2.5 rounded-lg text-center font-bold text-xs sm:text-sm">
-                                        ▼ 結論：尚未確立人機之間的根本界線
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 途徑 B -->
-                            <div class="border-2 border-teal-700/30 rounded-xl overflow-hidden flex flex-col">
-                                <div class="bg-teal-700 text-white px-4 py-2.5 font-bold flex items-center justify-between">
-                                    <span>📚 途徑 B｜能力領域</span>
-                                    <span class="text-xs bg-teal-800 px-2 py-0.5 rounded">認知心理學視角</span>
-                                </div>
-                                <div class="p-4 bg-white flex-1 flex flex-col justify-between space-y-3 text-sm">
-                                    <ul class="space-y-2 text-slate-700 list-disc pl-4">
-                                        <li><strong>核心追問：</strong>尋找人類具有、但 AI 原則上難以達成的能力領域。</li>
-                                        <li><strong>檢視項目：</strong>嬰兒核心知識（物理/心理直覺）、自然語言理解、感覺動作整合。</li>
-                                        <li><strong>遭遇瓶頸：</strong>AI 目前的困難，很難直接證明是「永遠無法突破的限制」。</li>
-                                    </ul>
-                                    <div class="bg-emerald-50 border border-emerald-200 text-emerald-900 p-2.5 rounded-lg text-center font-bold text-xs sm:text-sm">
-                                        ▼ 結論：人與 AI 各有優勢，長遠界線仍待釐清
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- 關鍵分岔路口互動區 -->
-                        <div class="bg-slate-100 p-4 rounded-xl border border-slate-300 text-center space-y-3">
-                            <span class="inline-block bg-white border-2 border-[#0f2942] text-[#0f2942] font-black px-4 py-1 rounded-full text-sm shadow-sm">
-                                🧭 接下來往哪裡走？（論證的分岔點）
-                            </span>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
-                                <div class="bg-sky-100 border border-sky-300 p-3 rounded-lg text-left">
-                                    <p class="font-bold text-[#0f2942] text-sm">↙ 路線一：尋找缺少的要素（前往階段 4）</p>
-                                    <p class="text-xs text-slate-600 mt-1">繼續維持「智慧＝解題」，試著找出 AI 還少哪塊拼圖（如意識、常識、情感），把它補齊。</p>
-                                </div>
-                                <div class="bg-amber-100 border border-amber-400 p-3 rounded-lg text-left">
-                                    <p class="font-bold text-amber-950 text-sm">↘ 路線二：重新檢查定義（前往階段 5 & Ch07）</p>
-                                    <p class="text-xs text-amber-900 mt-1">懷疑「把零件加總就能變成智慧」的想法，回頭徹底檢討「智慧＝解題能力」這個定義本身！</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 4: 6.5 尋找缺少的要素 -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-white text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">4</span>
-                            <span class="text-xs font-medium text-sky-200 tracking-wider uppercase">第三階段｜6.5</span>
-                        </div>
-                        <h3 class="text-lg sm:text-xl font-bold tracking-wide">尋找缺少的要素</h3>
-                    </div>
-
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                            <h4 class="text-lg font-bold text-slate-800">
-                                以下為作者對 5 大「候選能力」的評估
-                            </h4>
-                            <span class="text-xs text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-md font-medium">
-                                點擊各要素可展開白話說明
-                            </span>
-                        </div>
-                        <p class="text-xs sm:text-sm text-slate-600">
-                            許多人認為 AI 只要再加上某個「關鍵要素」就能擁有真正的人類智慧。安德勒逐一檢視這五個熱門候選者，發現它們都無法單獨作為填補鴻溝的解方：
-                        </p>
-
-                        <!-- 5個候選要素互動列表 -->
-                        <div class="space-y-2.5" id="candidate-list">
-                            <!-- 1 意識 -->
-                            <div onclick="toggleCandidate(1)" class="cursor-pointer border border-slate-200 hover:border-teal-600 rounded-xl p-3 transition bg-slate-50/60">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2.5">
-                                        <span class="w-6 h-6 rounded bg-teal-700 text-white text-xs font-bold flex items-center justify-center">1</span>
-                                        <span class="font-bold text-[#0f2942]">意識 (Consciousness)</span>
-                                        <span class="text-xs text-slate-600 hidden md:inline">｜本質、解題作用及實現方式仍不清楚</span>
-                                    </div>
-                                    <span class="text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md self-start sm:self-auto">
-                                        ➔ 尚難形成補足方案
-                                    </span>
-                                </div>
-                                <div id="cand-detail-1" class="hidden mt-3 pt-2.5 border-t border-slate-200 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                                    <strong>白話解析：</strong>科學界連人類意識的本質是什麼、意識在「解決問題」中到底扮演什麼實際功能都還沒有共識，因此根本無法開出工程規格讓 AI 去「安裝」意識。
-                                </div>
-                            </div>
-
-                            <!-- 2 意義 -->
-                            <div onclick="toggleCandidate(2)" class="cursor-pointer border border-slate-200 hover:border-teal-600 rounded-xl p-3 transition bg-slate-50/60">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2.5">
-                                        <span class="w-6 h-6 rounded bg-teal-700 text-white text-xs font-bold flex items-center justify-center">2</span>
-                                        <span class="font-bold text-[#0f2942]">意義 (Meaning)</span>
-                                        <span class="text-xs text-slate-600 hidden md:inline">｜直接認識與描述認識；資訊不足與主動探查</span>
-                                    </div>
-                                    <span class="text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md self-start sm:self-auto">
-                                        ➔ 進一步指向常識
-                                    </span>
-                                </div>
-                                <div id="cand-detail-2" class="hidden mt-3 pt-2.5 border-t border-slate-200 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                                    <strong>白話解析：</strong>AI 處理的是符號與統計關聯，但不懂得符號背後的「意義」。當我們追問人類如何理解意義、如何在資訊不足時主動探查世界，問題就會立刻滑向更龐大的「常識」問題。
-                                </div>
-                            </div>
-
-                            <!-- 3 常識 -->
-                            <div onclick="toggleCandidate(3)" class="cursor-pointer border border-slate-200 hover:border-teal-600 rounded-xl p-3 transition bg-slate-50/60">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2.5">
-                                        <span class="w-6 h-6 rounded bg-teal-700 text-white text-xs font-bold flex items-center justify-center">3</span>
-                                        <span class="font-bold text-[#0f2942]">常識 (Common Sense)</span>
-                                        <span class="text-xs text-slate-600 hidden md:inline">｜知識＋合理推論；跨領域、例外與長尾情境</span>
-                                    </div>
-                                    <span class="text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md self-start sm:self-auto">
-                                        ➔ 作者懷疑它能否作為單一要素
-                                    </span>
-                                </div>
-                                <div id="cand-detail-3" class="hidden mt-3 pt-2.5 border-t border-slate-200 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                                    <strong>白話解析：</strong>常識不是一本寫滿規則的百科全書，它涉及跨領域判斷、處理罕見例外（長尾效應）與對日常情境的直覺。安德勒認為「常識」根本不是一個可以獨立抽出來的單一模組，而是整體智慧的展現。
-                                </div>
-                            </div>
-
-                            <!-- 4 後設認知 -->
-                            <div onclick="toggleCandidate(4)" class="cursor-pointer border border-slate-200 hover:border-teal-600 rounded-xl p-3 transition bg-slate-50/60">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2.5">
-                                        <span class="w-6 h-6 rounded bg-teal-700 text-white text-xs font-bold flex items-center justify-center">4</span>
-                                        <span class="font-bold text-[#0f2942]">後設認知 (Metacognition)</span>
-                                        <span class="text-xs text-slate-600 hidden md:inline">｜監控機制已有實作，整體能力如何提升仍待說明</span>
-                                    </div>
-                                    <span class="text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md self-start sm:self-auto">
-                                        ➔ 不足以單獨填補差距
-                                    </span>
-                                </div>
-                                <div id="cand-detail-4" class="hidden mt-3 pt-2.5 border-t border-slate-200 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                                    <strong>白話解析：</strong>「知道自己知道什麼、不知道什麼」的自我監控機制，工程師其實已經在 AI 中實作了部分功能（例如信心水準評估），但這依然沒有讓 AI 產生質變成為人類智慧。
-                                </div>
-                            </div>
-
-                            <!-- 5 情感 -->
-                            <div onclick="toggleCandidate(5)" class="cursor-pointer border border-slate-200 hover:border-teal-600 rounded-xl p-3 transition bg-slate-50/60">
-                                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2.5">
-                                        <span class="w-6 h-6 rounded bg-teal-700 text-white text-xs font-bold flex items-center justify-center">5</span>
-                                        <span class="font-bold text-[#0f2942]">情感 (Emotion)</span>
-                                        <span class="text-xs text-slate-600 hidden md:inline">｜辨識、表達與注意力控制的角色及限度</span>
-                                    </div>
-                                    <span class="text-xs font-bold bg-amber-100 text-amber-900 border border-amber-300 px-2.5 py-1 rounded-md self-start sm:self-auto">
-                                        ➔ 整體突破尚待論證
-                                    </span>
-                                </div>
-                                <div id="cand-detail-5" class="hidden mt-3 pt-2.5 border-t border-slate-200 text-xs sm:text-sm text-slate-600 leading-relaxed">
-                                    <strong>白話解析：</strong>人工情感計算可以模仿人類表情或調節系統權重，但人類情感深植於生物肉體的生存焦慮與價值在乎，單靠演算法模擬情感調節，並不能直接帶來整體智慧的突破。
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-sky-100 text-[#0f2942] px-4 py-2.5 rounded-xl text-sm font-bold text-center border border-sky-200">
-                            身體與主體性：擁有軀體，如何形成與世界的關係？（引出下一章伏筆）
-                        </div>
-                        <div class="bg-amber-100/90 border border-amber-300 text-amber-950 px-4 py-3 rounded-xl text-sm font-bold text-center">
-                            💡 核心結論：累加功能，仍未充分回答「整體智慧」如何形成。
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 5: 6.6 檢查可加性的限度 -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-white text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">5</span>
-                            <span class="text-xs font-medium text-sky-200 tracking-wider uppercase">第四階段｜6.6</span>
-                        </div>
-                        <h3 class="text-lg sm:text-xl font-bold tracking-wide">檢查可加性的限度</h3>
-                    </div>
-
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
-                        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
-                            <!-- 左側：瑞士刀比喻與三時刻 -->
-                            <div class="lg:col-span-7 space-y-4">
-                                <h4 class="text-lg font-bold text-slate-800">
-                                    🔪 瑞士刀比喻：增加刀片，如何構成整體智慧？
-                                </h4>
-                                <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">
-                                    把各種專用 AI 模組組裝在一起，就像一把擁有上百片刀片的超級瑞士刀。但<strong>誰來決定現在該翻出哪一片刀？或者發現根本不該用刀？</strong>就連「解決問題」這件事本身，都包含三個超出孤立解題程序的時刻：
-                                </p>
-
-                                <!-- 三時刻流程卡 -->
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center">
-                                    <div class="bg-sky-50 border border-sky-200 p-3 rounded-xl">
-                                        <div class="font-black text-[#0f2942] text-sm bg-sky-200/80 py-1 px-2 rounded-lg mb-1.5">1. 形成問題</div>
-                                        <p class="text-xs text-slate-600">在混亂處境中選擇目標、抽象化為題目</p>
-                                    </div>
-                                    <div class="bg-sky-50 border border-sky-200 p-3 rounded-xl">
-                                        <div class="font-black text-[#0f2942] text-sm bg-sky-200/80 py-1 px-2 rounded-lg mb-1.5">2. 尋找解方</div>
-                                        <p class="text-xs text-slate-600">動員跨領域的一般能力與資源</p>
-                                    </div>
-                                    <div class="bg-sky-50 border border-sky-200 p-3 rounded-xl">
-                                        <div class="font-black text-[#0f2942] text-sm bg-sky-200/80 py-1 px-2 rounded-lg mb-1.5">3. 評估解方</div>
-                                        <p class="text-xs text-slate-600">把算出來的答案放回真實情境判斷</p>
-                                    </div>
-                                </div>
-
-                                <div class="bg-slate-100 text-slate-700 px-3 py-2 rounded-lg text-xs sm:text-sm text-center font-medium">
-                                    這三個時刻，都涉及超出「孤立解題程序」的一般能力。
-                                </div>
-
-                                <div class="bg-amber-100/90 border border-amber-300 text-amber-950 px-4 py-3 rounded-xl text-sm font-bold text-center">
-                                    ❓ 終極詰問：比較解題表現，能否充分掌握人類智慧？
-                                </div>
-                            </div>
-
-                            <!-- 右側：作者的投影比喻 SVG 視覺化 -->
-                            <div class="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-col items-center justify-center text-center">
-                                <span class="text-xs font-bold bg-[#0f2942] text-white px-3 py-1 rounded-full mb-2">作者的空間投影比喻</span>
-                                <svg viewBox="0 0 260 210" class="w-full max-w-[240px] h-auto">
-                                    <!-- 地板投影平面 -->
-                                    <polygon points="20,165 110,130 245,155 155,195" fill="#cbd5e1" stroke="#94a3b8" stroke-width="1.5"/>
-                                    <!-- 地面上的影子 -->
-                                    <ellipse cx="145" cy="162" rx="45" ry="10" fill="#64748b" opacity="0.6" transform="rotate(-8 145 162)"/>
-                                    <!-- 站立的人類立體剪影 -->
-                                    <circle cx="95" cy="48" r="13" fill="#0f2942"/>
-                                    <path d="M80,68 C80,64 110,64 110,68 L114,115 L104,115 L102,158 L88,158 L86,115 L76,115 Z" fill="#0f2942"/>
-                                    <!-- 投影虛線 -->
-                                    <line x1="108" y1="48" x2="180" y2="158" stroke="#64748b" stroke-width="1" stroke-dasharray="4,4"/>
-                                    <!-- 標籤：人類智慧 -->
-                                    <rect x="135" y="42" width="85" height="24" rx="6" fill="#ffffff" stroke="#0f2942" stroke-width="1.5"/>
-                                    <text x="177" y="58" font-size="11" font-weight="bold" fill="#0f2942" text-anchor="middle">立體：人類智慧</text>
-                                    <line x1="108" y1="55" x2="135" y2="54" stroke="#0f2942" stroke-width="1.5"/>
-                                    <!-- 標籤：問題平面上的投影 -->
-                                    <rect x="115" y="175" width="130" height="24" rx="6" fill="#ffffff" stroke="#475569" stroke-width="1.5"/>
-                                    <text x="180" y="191" font-size="11" font-weight="bold" fill="#334155" text-anchor="middle">問題平面上的扁平投影</text>
-                                </svg>
-                                <p class="text-xs text-slate-600 mt-2 leading-relaxed">
-                                    人類智慧是<strong>立體的</strong>，而「解決明確定義的問題」只是它在二維平面上投射出的<strong>扁平影子</strong>。AI 在影子的平面上匹敵人類，不代表它擁有立體的智慧。
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- 底部導引至 Ch07 按鈕 -->
-            <div class="pt-4 flex justify-center">
-                <button onclick="switchChapter(7)" class="group bg-[#0f2942] hover:bg-teal-800 text-white font-bold px-8 py-4 rounded-2xl shadow-lg flex items-center gap-3 transition transform hover:-translate-y-0.5">
-                    <span>走向 Ch07：情境、動物性與智慧的重建</span>
-                    <span class="text-amber-300 group-hover:translate-x-1 transition">➔</span>
-                </button>
-            </div>
-        </section>
-
-
-        <!-- ==========================================
-             CH07 內容區塊：智慧與動物性
-             ========================================== -->
-        <section id="content-ch07" class="chapter-section hidden space-y-8">
-            
-            <!-- 章節大標題橫幅 -->
-            <div class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 text-center relative overflow-hidden">
-                <div class="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-teal-600 via-[#0f2942] to-amber-500"></div>
-                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-slate-600 text-xs font-semibold mb-3">
-                    <span>承接 Ch06：比較解題表現，能否涵蓋整體智慧？</span>
-                </div>
-                <h2 class="text-2xl sm:text-4xl font-black text-[#0f2942] tracking-tight">
-                    Ch07｜智慧與動物性
-                </h2>
-                <p class="mt-3 inline-block bg-sky-100 text-[#0f2942] font-bold px-5 py-1.5 rounded-full text-sm sm:text-base">
-                    從解決問題，到在情境中適當行動
-                </p>
-                <p class="mt-4 text-slate-600 text-sm sm:text-base max-w-2xl mx-auto leading-relaxed">
-                    既然「解題能力」只是智慧的扁平投影，那真正的智慧究竟是什麼？安德勒在第七章帶領我們回到生物學與演化的根源：智慧首先不是電腦機房裡的符號運算，而是<strong>活生生的動物在充滿未知的環境中，為了生存而採取「適當行動」的能力</strong>。
-                </p>
-            </div>
-
-            <!-- 步驟時間軸容器 -->
-            <div class="relative space-y-8 before:hidden md:before:block before:absolute before:top-10 before:bottom-10 before:left-[104px] before:w-1 before:bg-slate-300">
-
-                <!-- Step 1: 7.1 重問智慧 -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-white text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">1</span>
-                            <span class="text-xs font-medium text-sky-200 tracking-wider uppercase">起點｜7.1</span>
-                        </div>
-                        <h3 class="text-lg sm:text-xl font-bold tracking-wide">重問智慧</h3>
-                    </div>
-
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
-                        <div class="bg-sky-100/80 text-[#0f2942] font-black py-2 px-4 rounded-xl text-center text-base sm:text-lg">
-                            古老探問的回歸
-                        </div>
-                        <div class="flex flex-col sm:flex-row items-center justify-center gap-3 py-2">
-                            <div class="w-full sm:w-5/12 bg-sky-50 border border-sky-200 p-4 rounded-xl text-center font-bold text-[#0f2942]">
-                                AI 持續完成各項認知任務
-                                <p class="text-xs font-normal text-slate-600 mt-1">（下棋、翻譯、辨識、生成文本）</p>
-                            </div>
-                            <div class="text-2xl font-black text-[#0f2942] rotate-90 sm:rotate-0">➔</div>
-                            <div class="w-full sm:w-5/12 bg-sky-50 border border-sky-200 p-4 rounded-xl text-center font-bold text-[#0f2942]">
-                                更需要釐清「何謂智慧」
-                                <p class="text-xs font-normal text-slate-600 mt-1">（逼我們正視過去視為理所當然的概念）</p>
-                            </div>
-                        </div>
-                        <div class="bg-amber-100/90 border border-amber-300 text-amber-950 px-4 py-3 rounded-xl text-sm font-bold text-center">
-                            💡 核心洞見：任務清單逐項完成，不等於已回答「智慧是什麼」。
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 2: 7.2 檢視定義 -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-white text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">2</span>
-                            <span class="text-xs font-medium text-sky-200 tracking-wider uppercase">第一階段｜7.2</span>
-                        </div>
-                        <h3 class="text-lg sm:text-xl font-bold tracking-wide">檢視定義</h3>
-                    </div>
-
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
-                        <div class="bg-sky-100/80 text-[#0f2942] font-black py-2 px-4 rounded-xl text-center text-base sm:text-lg">
-                            為智慧尋找定義
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div class="bg-teal-700 text-white p-3.5 rounded-xl text-center font-bold shadow-sm">
-                                ⚙️ 理解與學習
-                                <p class="text-xs font-normal text-teal-100 mt-1">獲取新知、掌握規律</p>
-                            </div>
-                            <div class="bg-teal-700 text-white p-3.5 rounded-xl text-center font-bold shadow-sm">
-                                💡 解決問題
-                                <p class="text-xs font-normal text-teal-100 mt-1">推理、計算與克服障礙</p>
-                            </div>
-                            <div class="bg-teal-700 text-white p-3.5 rounded-xl text-center font-bold shadow-sm">
-                                🌱 行動與適應
-                                <p class="text-xs font-normal text-teal-100 mt-1">在變動環境中求生調整</p>
-                            </div>
-                        </div>
-
-                        <div class="bg-sky-50 border border-sky-200 text-[#0f2942] px-4 py-2.5 rounded-xl text-sm font-bold text-center">
-                            暫定定義：運用已有知識、尋找欠缺知識，及時回應問題
-                        </div>
-
-                        <div class="bg-amber-100/90 border border-amber-300 text-amber-950 px-4 py-3 rounded-xl text-sm font-bold text-center">
-                            ❓ 仍須追問：對「誰」而言是問題？什麼答案才可接受？（誰在乎結果？）
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 3: 7.3 引入動物與環境 (Umwelt 互動體驗) -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-white text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">3</span>
-                            <span class="text-xs font-medium text-sky-200 tracking-wider uppercase">第二階段｜7.3</span>
-                        </div>
-                        <h3 class="text-lg sm:text-xl font-bold tracking-wide">引入動物與環境</h3>
-                    </div>
-
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-4">
-                        <div class="bg-sky-100/80 text-[#0f2942] font-black py-2 px-4 rounded-xl text-center text-base sm:text-lg">
-                            有機體與環境：生物學設想
-                        </div>
-
-                        <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
-                            <div class="w-full sm:w-5/12 bg-sky-100 text-[#0f2942] px-4 py-2.5 rounded-full text-center font-bold text-sm">
-                                動物的身體與需求
-                            </div>
-                            <span class="font-black text-xl text-[#0f2942]">⟷</span>
-                            <div class="w-full sm:w-5/12 bg-sky-100 text-[#0f2942] px-4 py-2.5 rounded-full text-center font-bold text-sm">
-                                周遭世界 (Umwelt)
-                            </div>
-                        </div>
-
-                        <!-- 互動體驗：同一棵樹在不同生物眼中的意義 -->
-                        <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
-                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                                <span class="text-xs sm:text-sm font-bold text-[#0f2942]">
-                                    🌳 互動實驗：點擊切換視角，看看「同一棵橡樹」在不同主體的世界裡是什麼？
-                                </span>
-                                <div class="flex gap-1.5">
-                                    <button onclick="switchUmwelt('monkey')" id="umwelt-monkey" class="px-3 py-1 rounded-lg text-xs font-bold bg-teal-700 text-white transition">🐒 猴子視角</button>
-                                    <button onclick="switchUmwelt('boar')" id="umwelt-boar" class="px-3 py-1 rounded-lg text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition">🐗 野豬視角</button>
-                                    <button onclick="switchUmwelt('ai')" id="umwelt-ai" class="px-3 py-1 rounded-lg text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition">🤖 AI 視角</button>
-                                </div>
-                            </div>
-                            <div id="umwelt-display" class="bg-white p-3.5 rounded-lg border border-slate-200 text-xs sm:text-sm text-slate-700">
-                                <p class="font-bold text-teal-800 mb-1">🐒 對猴子而言：樹是「可攀爬的立體通道與避難所」</p>
-                                <p>因為猴子擁有抓握的四肢與靈活軀體（身體構造），且需要躲避地面掠食者（生存需求），大樹在牠的周遭世界（Umwelt）中呈現出「往上爬」的行動可能性（Affordance）。</p>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-center">
-                            <div class="bg-emerald-100/80 border border-emerald-300 text-emerald-950 py-2.5 px-4 rounded-xl font-bold text-sm">
-                                依附生物體的構造（具身性）
-                            </div>
-                            <div class="bg-emerald-100/80 border border-emerald-300 text-emerald-950 py-2.5 px-4 rounded-xl font-bold text-sm">
-                                依附所處的環境（嵌入性）
-                            </div>
-                        </div>
-
-                        <div class="bg-amber-100/90 border border-amber-300 text-amber-950 px-4 py-3 rounded-xl text-sm font-bold text-center">
-                            💡 核心結論：智慧具有「雙重依附」，不能抽離身體與環境來理解。
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 4: 7.4 區分問題與情境（全書論證樞紐！） -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md ring-4 ring-amber-400/50">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-amber-400 text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">4</span>
-                            <span class="text-xs font-bold text-amber-300 tracking-wider uppercase">論證樞紐｜7.4</span>
-                        </div>
-                        <div>
-                            <h3 class="text-lg sm:text-xl font-bold tracking-wide">區分問題與情境</h3>
-                            <span class="hidden md:inline-block mt-2 text-[11px] bg-amber-400/20 text-amber-200 px-2 py-0.5 rounded border border-amber-400/40">★ 全書最關鍵區分</span>
-                        </div>
-                    </div>
-
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border-2 border-[#0f2942]/20 space-y-4">
-                        <div class="bg-sky-100 text-[#0f2942] font-black py-2.5 px-4 rounded-xl text-center text-base sm:text-xl">
-                            【問題 Problem】 不等於 【情境 Situation】
-                        </div>
-
-                        <!-- 問題 vs 情境 對照表 -->
-                        <div class="overflow-x-auto">
-                            <table class="w-full border-collapse text-sm text-center rounded-xl overflow-hidden border border-slate-300">
-                                <thead>
-                                    <tr class="bg-sky-200/70 text-[#0f2942] font-black text-base">
-                                        <th class="p-3 border border-slate-300 w-1/2">🧩 【問題】 (Problem)<br><span class="text-xs font-normal text-slate-700">AI 最擅長處理的領域</span></th>
-                                        <th class="p-3 border border-slate-300 w-1/2">🌊 【情境】 (Situation)<br><span class="text-xs font-normal text-slate-700">生物與人類真實面對的處境</span></th>
-                                    </tr>
-                                </thead>
-                                <tbody class="text-slate-800 font-medium">
-                                    <tr class="bg-white">
-                                        <td class="p-3 border border-slate-300">被提出、被界定好的題目</td>
-                                        <td class="p-3 border border-slate-300 bg-amber-50/40 font-bold text-[#0f2942]">具體、被親身經驗到的處境</td>
-                                    </tr>
-                                    <tr class="bg-slate-50/70">
-                                        <td class="p-3 border border-slate-300">條件與解答標準相對明確</td>
-                                        <td class="p-3 border border-slate-300 bg-amber-50/40 font-bold text-[#0f2942]">需要行動，也可有意選擇不行動</td>
-                                    </tr>
-                                    <tr class="bg-white">
-                                        <td class="p-3 border border-slate-300">可抽離當下，在任何地方反覆求解</td>
-                                        <td class="p-3 border border-slate-300 bg-amber-50/40 font-bold text-[#0f2942]">隨行動者與時間而不斷變化</td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- 情境轉化為問題的流程鏈 -->
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <p class="text-xs text-slate-500 text-center mb-2 font-semibold">人類在日常中是如何從「情境」走到「解題」的？</p>
-                            <div class="flex flex-wrap items-center justify-center gap-2 text-xs sm:text-sm font-bold">
-                                <span class="bg-sky-200 text-[#0f2942] px-3 py-1.5 rounded-lg">1. 身處【情境】</span>
-                                <span>➔</span>
-                                <span class="bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1.5 rounded-lg">2. 選取重點、抽象化</span>
-                                <span>➔</span>
-                                <span class="bg-sky-200 text-[#0f2942] px-3 py-1.5 rounded-lg">3. 框定出【問題】</span>
-                                <span>➔</span>
-                                <span class="bg-emerald-100 text-emerald-900 border border-emerald-300 px-3 py-1.5 rounded-lg">4. 求解與回應（AI 介入點）</span>
-                            </div>
-                        </div>
-
-                        <div class="bg-sky-50 border border-sky-200 text-[#0f2942] px-4 py-2.5 rounded-xl text-xs sm:text-sm font-bold text-center">
-                            ⚠️ 關鍵限制：情境未必能完整轉成問題；而適當的行動也未必需要經過明確解題。
-                        </div>
-
-                        <div class="bg-amber-100/90 border border-amber-300 text-amber-950 px-4 py-3 rounded-xl text-sm font-bold text-center">
-                            💡 核心結論：解題只是應對情境的一種方式，無法涵蓋全部智慧。
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Step 5: 7.5 重建智慧觀 -->
-                <div class="relative flex flex-col md:flex-row gap-4 md:gap-6 items-stretch">
-                    <div class="md:w-52 shrink-0 bg-[#0f2942] text-white rounded-2xl p-5 flex flex-row md:flex-col justify-between md:justify-center items-center md:items-start relative z-10 shadow-md">
-                        <div class="flex items-center gap-3 md:mb-3">
-                            <span class="w-9 h-9 rounded-full bg-white text-[#0f2942] font-black flex items-center justify-center text-lg step-badge">5</span>
-                            <span class="text-xs font-medium text-sky-200 tracking-wider uppercase">第三階段｜7.5</span>
-                        </div>
-                        <h3 class="text-lg sm:text-xl font-bold tracking-wide">重建智慧觀</h3>
-                    </div>
-
-                    <div class="flex-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5">
-                        <div class="text-center space-y-2">
-                            <div class="bg-sky-100 text-[#0f2942] font-black py-2 px-4 rounded-xl text-base sm:text-lg">
-                                智慧：如何處理【情境】
-                            </div>
-                            <div class="inline-block bg-sky-200/90 text-[#0f2942] font-black px-6 py-2 rounded-full text-sm sm:text-base shadow-sm">
-                                ★ 新定義：在具體情境中，以適當方式行動的能力
-                            </div>
-                        </div>
-
-                        <!-- 三大核心特徵 -->
-                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                            <div class="bg-teal-700 text-white p-3 rounded-xl text-center font-bold text-sm">
-                                🎯 自主調整目標
-                            </div>
-                            <div class="bg-teal-700 text-white p-3 rounded-xl text-center font-bold text-sm">
-                                🔄 與環境持續互動
-                            </div>
-                            <div class="bg-teal-700 text-white p-3 rounded-xl text-center font-bold text-sm">
-                                ⚖️ 判斷行動是否適當
-                            </div>
-                        </div>
-
-                        <p class="text-center text-xs sm:text-sm font-bold text-slate-700 bg-slate-100 py-2 rounded-lg">
-                            「智慧」兼具描述與評價：它同時指涉「如何行動」，以及「行動得好不好（適不適當）」。
-                        </p>
-
-                        <!-- 三角關係圖與兩個層次比較 -->
-                        <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center bg-slate-50 p-4 rounded-xl border border-slate-200">
-                            <!-- 三角關係 SVG -->
-                            <div class="md:col-span-6 flex flex-col items-center">
-                                <svg viewBox="0 0 280 175" class="w-full max-w-[260px] h-auto">
-                                    <!-- 三角形連線 -->
-                                    <polygon points="140,35 55,140 225,140" fill="none" stroke="#0f2942" stroke-width="2.5"/>
-                                    <!-- 頂點節點 -->
-                                    <circle cx="140" cy="35" r="5" fill="#0f2942"/>
-                                    <circle cx="55" cy="140" r="5" fill="#0f2942"/>
-                                    <circle cx="225" cy="140" r="5" fill="#0f2942"/>
-                                    <!-- 標籤框：人工智慧 -->
-                                    <rect x="95" y="6" width="90" height="24" rx="6" fill="#ffffff" stroke="#0f2942" stroke-width="1.5"/>
-                                    <text x="140" y="22" font-size="12" font-weight="bold" fill="#0f2942" text-anchor="middle">人工智慧</text>
-                                    <!-- 標籤框：非人類動物智慧 -->
-                                    <rect x="5" y="145" width="110" height="24" rx="6" fill="#ffffff" stroke="#0f2942" stroke-width="1.5"/>
-                                    <text x="60" y="161" font-size="12" font-weight="bold" fill="#0f2942" text-anchor="middle">非人類動物智慧</text>
-                                    <!-- 標籤框：人類智慧 -->
-                                    <rect x="175" y="145" width="90" height="24" rx="6" fill="#ffffff" stroke="#0f2942" stroke-width="1.5"/>
-                                    <text x="220" y="161" font-size="12" font-weight="bold" fill="#0f2942" text-anchor="middle">人類智慧</text>
-                                </svg>
-                            </div>
-
-                            <!-- 兩個比較層次 -->
-                            <div class="md:col-span-6 space-y-3">
-                                <div class="bg-sky-100 border border-sky-300 p-3.5 rounded-xl">
-                                    <span class="font-black text-[#0f2942] text-sm block">📊 任務層次：可以比較表現</span>
-                                    <p class="text-xs text-slate-700 mt-1">當問題已經被明確界定（例如下圍棋、辨識腫瘤），我們可以客觀比較人與 AI 誰算得快、準確率高。</p>
-                                </div>
-                                <div class="bg-sky-100 border border-sky-300 p-3.5 rounded-xl">
-                                    <span class="font-black text-[#0f2942] text-sm block">🌍 整體智慧：不能直接化約為同一尺度</span>
-                                    <p class="text-xs text-slate-700 mt-1">在真實世界的具體情境中，動物與人類賭上的是「自身生命與在乎的價值」，這無法與沒有生命處境的 AI 放在同一把尺上衡量。</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="bg-amber-100/90 border border-amber-300 text-amber-950 px-4 py-3 rounded-xl text-sm font-bold text-center">
-                            💡 全章總結：動物的情境關乎自身生命；這是作者重估「人機比較」的關鍵支點。
-                        </div>
-                    </div>
-                </div>
-
-            </div>
-
-            <!-- 底部導引至 Ch08 或回 Ch06 按鈕 -->
-            <div class="pt-4 flex flex-col sm:flex-row justify-center gap-4">
-                <button onclick="switchChapter(6)" class="bg-white hover:bg-slate-100 text-[#0f2942] border border-slate-300 font-bold px-6 py-3.5 rounded-2xl shadow-sm transition">
-                    ⬅ 回顧 Ch06：人工智慧與人類智慧的比較
-                </button>
-                <button onclick="switchChapter(8)" class="group bg-[#0f2942] hover:bg-teal-800 text-white font-bold px-8 py-3.5 rounded-2xl shadow-lg flex items-center justify-center gap-3 transition">
-                    <span>走向 Ch08：在共同的動物性之上，追問人類智慧的特殊性</span>
-                    <span class="text-amber-300 group-hover:translate-x-1 transition">➔</span>
-                </button>
-            </div>
-        </section>
-
-
-        <!-- ==========================================
-             其他章節預覽區塊 (Ch01~05, Ch08~10)
-             ========================================== -->
-        <section id="content-placeholder" class="chapter-section hidden">
-            <div class="bg-white rounded-2xl p-8 shadow-sm border border-slate-200 max-w-3xl mx-auto text-center space-y-6">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-sky-100 text-[#0f2942] font-black text-2xl shadow-inner" id="ph-badge">
-                    Ch01
-                </div>
-                <div>
-                    <span class="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 px-3 py-1 rounded-full" id="ph-part">
-                        第一部：人工智慧的雙重謎團
-                    </span>
-                    <h2 class="text-2xl sm:text-3xl font-black text-[#0f2942] mt-3" id="ph-title">
-                        章節標題載入中...
-                    </h2>
-                </div>
-
-                <div class="bg-slate-50 border border-slate-200 rounded-xl p-6 text-left space-y-3">
-                    <h3 class="font-bold text-[#0f2942] flex items-center gap-2">
-                        <span>📌 本章在全書論證中的定位：</span>
-                    </h3>
-                    <p class="text-slate-700 text-sm sm:text-base leading-relaxed" id="ph-summary">
-                        章節簡介載入中...
-                    </p>
-                </div>
-
-                <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 text-xs sm:text-sm text-amber-900">
-                    🛠️ <strong>測試模板提示：</strong>目前已完成 <strong>Ch06</strong> 與 <strong>Ch07</strong> 的完整視覺化互動架構！未來您只需提供其他章節的讀書會整理圖或大綱，我們就能直接嵌入對應的分頁中。
-                </div>
-
-                <div class="flex flex-wrap justify-center gap-3 pt-2">
-                    <button onclick="switchChapter(6)" class="bg-[#0f2942] hover:bg-slate-800 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition shadow">
-                        前往 Ch06 完整互動導讀
-                    </button>
-                    <button onclick="switchChapter(7)" class="bg-teal-700 hover:bg-teal-800 text-white font-bold px-5 py-2.5 rounded-xl text-sm transition shadow">
-                        前往 Ch07 完整互動導讀
-                    </button>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- 頁尾資訊 -->
-    <footer class="bg-slate-900 text-slate-400 text-xs py-6 px-4 border-t border-slate-800 mt-12">
-        <div class="max-w-5xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-2">
-            <p>《AI會取代人類智慧嗎？：人工智能與人類智慧的雙重謎團》讀書會互動導讀模板</p>
-            <p>依章節論證濃縮整理；評估與比喻呈現作者丹尼爾·安德勒立場</p>
-        </div>
-    </footer>
-
-    <!-- 彈出視窗：「運氣」寓言解說 -->
-    <div id="fable-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-                <h3 class="text-lg font-black text-[#0f2942]">📖 什麼是「運氣」寓言？</h3>
-                <button onclick="toggleModal('fable-modal')" class="text-slate-400 hover:text-slate-600 font-bold text-xl">&times;</button>
-            </div>
-            <div class="text-sm text-slate-700 space-y-3 leading-relaxed">
-                <p>
-                    在日常生活中，我們常說某人「運氣很好」或「具有好運這種特質」。但如果科學家想打開人體尋找「運氣器官」或「運氣基因」，必然一無所獲——因為「運氣」只是一個我們用來事後描述各種巧合結果的<strong>標籤名稱</strong>，背後並沒有一個單一、可獨立分離出來的實存機制。
-                </p>
-                <p>
-                    安德勒用這個寓言提醒我們：當我們談論<strong>「人類智慧」</strong>與<strong>「人工智慧」</strong>時，必須先警覺——這兩個詞背後，到底是真的指向某種可界定的實存能力？還是像「運氣」一樣，只是一個鬆散的集合標籤？
-                </p>
-                <p class="bg-amber-50 border border-amber-200 p-3 rounded-lg text-amber-950 font-medium">
-                    安德勒在 6.3 節選擇「暫時保留這兩個概念」（第四格立場），透過實際比較它們的機制與極限，來檢驗它們真正的內涵。
-                </p>
-            </div>
-            <div class="text-right pt-2">
-                <button onclick="toggleModal('fable-modal')" class="bg-[#0f2942] text-white font-bold px-5 py-2 rounded-xl text-sm">我明白了</button>
-            </div>
-        </div>
+<body>
+
+  <!-- Top Navigation Header -->
+  <header>
+    <div class="brand">
+      <div class="badge-live">DEFENSE EXHIBIT ONLINE</div>
+      <h1>RAFAEL IRON BEAM <span>高能雷射防禦系統 (HELWS) 互動展示中心</span></h1>
     </div>
 
-    <!-- 互動邏輯腳本 -->
-    <script>
-        // Ch01 ~ Ch10 全書章節資料結構
-        const chaptersData = [
-            {
-                id: 1,
-                code: "Ch01",
-                title: "導論：人工智慧的雙重謎團",
-                part: "第一部：人工智慧的歷史與本質",
-                ready: false,
-                summary: "介紹為何 AI 同時帶來技術上的驚奇與哲學上的困惑。所謂「雙重謎團」，第一重是：既有的 AI 究竟是如何運作並取得成功的？第二重則是：人類智慧本身的真正本質又是什麼？"
-            },
-            {
-                id: 2,
-                code: "Ch02",
-                title: "第一波浪潮：符號 AI 與心智計算理論",
-                part: "第一部：人工智慧的歷史與本質",
-                ready: false,
-                summary: "回顧經典符號 AI（GOFAI）的興起與假設，探討將人類思維視為「符號形式運算」的哲學基礎，以及第一代 AI 為何在面對真實世界複雜性時遭遇瓶頸。"
-            },
-            {
-                id: 3,
-                code: "Ch03",
-                title: "第二波浪潮：連結主義與機器學習",
-                part: "第一部：人工智慧的歷史與本質",
-                ready: false,
-                summary: "解析類神經網路與深度學習如何顛覆傳統規則系統，從巨量資料中自動提取特徵，並探討「黑盒子」不可解釋性與統計相關性背後的認識論問題。"
-            },
-            {
-                id: 4,
-                code: "Ch04",
-                title: "大型語言模型與生成式 AI 的衝擊",
-                part: "第一部：人工智慧的歷史與本質",
-                ready: false,
-                summary: "剖析當代大型語言模型（如 ChatGPT）如何透過預測下一個詞彙展現驚人的語言流暢度，並追問：流暢的語言形式是否等同於真正的語意理解與推理？"
-            },
-            {
-                id: 5,
-                code: "Ch05",
-                title: "通用人工智慧（AGI）的神話與現實",
-                part: "第一部：人工智慧的歷史與本質",
-                ready: false,
-                summary: "檢視矽谷與學界對「強人工智慧 / 通用人工智慧」的預言，分析從「專用任務系統」跨越到「通用心智」之間是否存在不可忽視的理論斷層。"
-            },
-            {
-                id: 6,
-                code: "Ch06",
-                title: "人工智慧與人類智慧的比較",
-                part: "第二部：人類智慧與人工智慧的面對面",
-                ready: true,
-                summary: "從接受比較，到重新檢查智慧的定義。"
-            },
-            {
-                id: 7,
-                code: "Ch07",
-                title: "智慧與動物性",
-                part: "第二部：人類智慧與人工智慧的面對面",
-                ready: true,
-                summary: "從解決問題，到在情境中適當行動。"
-            },
-            {
-                id: 8,
-                code: "Ch08",
-                title: "智慧與人性：文化、語言與理性",
-                part: "第二部：人類智慧與人工智慧的面對面",
-                ready: false,
-                summary: "承接第七章的「動物性與情境」，進一步追問：在共同的生物基礎之上，人類智慧有哪些獨特之處？深入探討人類的社會文化累積、價值規範、對話理性與集體生活。"
-            },
-            {
-                id: 9,
-                code: "Ch09",
-                title: "人機協作與未來社會的樣貌",
-                part: "第三部：與人工智慧共存",
-                ready: false,
-                summary: "既然 AI 不是「另一種人類」，而是強大的問題求解工具，我們該如何設計制度與工作流程，讓具備「情境智慧」的人類與具備「運算能力」的 AI 互補協作？"
-            },
-            {
-                id: 10,
-                code: "Ch10",
-                title: "結論：解開雙重謎團之後",
-                part: "第三部：與人工智慧共存",
-                ready: false,
-                summary: "總結全書論證路線：AI 不會取代真正意義上的人類智慧，但我們必須避免為了配合機器，而將豐富的人類生活世界自我矮化、扁平化為單純的「問題平面」。"
+    <!-- 3 Core Navigation Tabs -->
+    <div class="nav-sections">
+      <div class="nav-btn active" id="btn-nav-photos" onclick="switchMainView('photos')">
+        📸 實機寫真圖解
+      </div>
+      <div class="nav-btn" id="btn-nav-tech" onclick="switchMainView('tech')">
+        📋 科技深度解析
+      </div>
+      <div class="nav-btn" id="btn-nav-sim3d" onclick="switchMainView('sim3d')">
+        🎮 3D 互動攔截模擬
+      </div>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn-audio" id="btn-sound" onclick="toggleAudio()">
+        <span id="sound-icon">🔊</span> 音效開啓
+      </button>
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       SECTION 1: 實機寫真圖解與熱點標註 (REAL PHOTO GALLERY)
+       ========================================================================= -->
+  <div id="view-photos">
+    <div class="gallery-container">
+      <div class="gallery-header">
+        <div>
+          <h2>📸 Rafael 官方實機寫真與實測圖解庫</h2>
+          <p>看著真實照片了解 Iron Beam 各部位的真實樣貌，點擊圖片上的圓圈標籤可檢視該部位解說。</p>
+        </div>
+        <button class="jump-to-3d-btn" onclick="switchMainView('sim3d')">
+          🚀 進入 3D 空間親自操作攔截
+        </button>
+      </div>
+
+      <!-- Main Stage: Large Photo with Hotspots + Explanation Card -->
+      <div class="gallery-main-stage">
+        <div class="photo-display-box" id="photo-display-box">
+          <img id="main-gallery-img" src="assets/real_iron_beam_mobile.jpg" alt="Iron Beam Real Photo">
+          <!-- Dynamic Hotspots will be rendered here -->
+          <div id="hotspots-layer"></div>
+        </div>
+
+        <div class="photo-explanation-card">
+          <div class="photo-info-top">
+            <span class="photo-source-badge" id="photo-badge">RAFAEL OFFICIAL SOURCE</span>
+            <h3 id="photo-title">Iron Beam-M 重型車載高能雷射防禦車</h3>
+            <p class="photo-desc-text" id="photo-desc">
+              安裝在 8x8 高機動性重型戰術裝甲卡車底盤上的「全功能一體化 (All-in-One)」高能雷射防空系統。具備機動伴隨野戰部隊防空能力，從雷達搜索、能源供應、高壓液冷到發射轉塔全部整合於單一車輛載台。
+            </p>
+
+            <div class="hotspot-details-box" id="hotspot-details-box">
+              <h4 id="hotspot-title">點擊照片上的圓圈標籤</h4>
+              <p id="hotspot-desc">可深入查看該元件在實機上的工程細節與功能說明。</p>
+            </div>
+          </div>
+
+          <button class="jump-to-3d-btn" id="btn-photo-jump-3d" onclick="jumpFromPhotoTo3D()">
+            🔍 在 3D 互動模型中特寫此元件
+          </button>
+        </div>
+      </div>
+
+      <!-- Thumbnails Selector -->
+      <div class="photo-thumbnails-strip">
+        <div class="thumb-card active" onclick="selectGalleryPhoto(0)">
+          <div class="thumb-img-wrapper">
+            <img src="assets/real_iron_beam_mobile.jpg" alt="Mobile Iron Beam">
+          </div>
+          <span>1. Iron Beam-M 車載實機</span>
+        </div>
+
+        <div class="thumb-card" onclick="selectGalleryPhoto(1)">
+          <div class="thumb-img-wrapper">
+            <img src="assets/real_beam_director.jpg" alt="Beam Director">
+          </div>
+          <span>2. 光學發射轉塔與鏡頭</span>
+        </div>
+
+        <div class="thumb-card" onclick="selectGalleryPhoto(2)">
+          <div class="thumb-img-wrapper">
+            <img src="assets/real_combat_engagement.jpg" alt="Combat Test">
+          </div>
+          <span>3. 實彈測試高能雷射束</span>
+        </div>
+
+        <div class="thumb-card" onclick="selectGalleryPhoto(3)">
+          <div class="thumb-img-wrapper">
+            <img src="assets/real_target_damage.jpg" alt="Target Damage">
+          </div>
+          <span>4. 靶標熔毀與穿孔殘骸</span>
+        </div>
+
+        <div class="thumb-card" onclick="selectGalleryPhoto(4)">
+          <div class="thumb-img-wrapper">
+            <img src="assets/real_iron_beam_fixed.jpg" alt="Fixed Container">
+          </div>
+          <span>5. 固定防禦貨櫃陣地版</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       SECTION 2: 科技規格與四大子系統深度解析 (TECH SPECS VIEW)
+       ========================================================================= -->
+  <div id="view-tech">
+    <div class="tech-overview-container">
+      <div class="gallery-header">
+        <div>
+          <h2>📋 Iron Beam 核心技術架構與戰術價值</h2>
+          <p>全球首款進入實戰部署階段的百瓩級定向能防空系統技術總覽。</p>
+        </div>
+        <button class="jump-to-3d-btn" onclick="switchMainView('sim3d')">
+          🎮 前往 3D 模擬進行攔截測試
+        </button>
+      </div>
+
+      <div class="grid-2col">
+        <!-- Card 1: Economic Advantage -->
+        <div class="tech-full-card">
+          <h3>⚡ 顛覆不對稱戰爭：發射成本對比</h3>
+          <p style="font-size: 13px; line-height: 1.6; color: var(--text-muted);">
+            面對數千枚造價僅數百美元的土製火箭彈或廉價自殺無人機，使用數萬美元的飛彈進行防禦將迅速導致經濟耗竭。Iron Beam 每次擊落僅需消耗數度電費！
+          </p>
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th>指標項目</th>
+                <th>傳統動能攔截 (鐵穹 Tamir)</th>
+                <th>高能雷射 (Iron Beam)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>單發發射成本</td>
+                <td style="color: #ff5555;">$40,000 ~ $50,000 美元</td>
+                <td style="color: var(--accent-green); font-weight: bold;">約 $2 ~ $3.5 美元</td>
+              </tr>
+              <tr>
+                <td>交戰飛行時間</td>
+                <td>數秒至十數秒 (需計算攔截前置量)</td>
+                <td style="color: var(--accent-cyan); font-weight: bold;">0 秒 (光速 300,000 km/s)</td>
+              </tr>
+              <tr>
+                <td>彈藥庫容量</td>
+                <td>受發射箱限制 (20枚/架，裝填危險)</td>
+                <td style="color: var(--accent-gold); font-weight: bold;">無限彈藥 (依靠電力供應)</td>
+              </tr>
+              <tr>
+                <td>附帶損傷</td>
+                <td>攔截彈破片落下可能傷及地面</td>
+                <td style="color: var(--accent-green);">幾乎零附帶損傷</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Card 2: Kill Mechanism Physics -->
+        <div class="tech-full-card">
+          <h3>🔬 高能雷射三大毀傷物理學 (Kill Mechanism)</h3>
+          <ul style="padding-left: 18px; font-size: 13px; line-height: 1.8; color: var(--text-main);">
+            <li>
+              <strong style="color: var(--accent-gold);">1. 熱應力燒蝕 (Thermal Ablation)</strong>：
+              硬幣大小的極高光子密度聚集在目標外殼，使金屬熔解、碳纖維複合材料瞬間氣化穿孔。
+            </li>
+            <li>
+              <strong style="color: var(--accent-red);">2. 蒸氣壓引爆 (Cook-off)</strong>：
+              雷射燒穿火箭彈或迫擊砲彈壁後，直接引燃內部的固體推進劑或高爆炸藥，使內部壓力劇增瞬間殉爆。
+            </li>
+            <li>
+              <strong style="color: var(--accent-cyan);">3. 氣動舵面解體 (Aerodynamic Rupture)</strong>：
+              無人機在數百公里時速下飛行時，雷射燒毀機翼控制舵面，氣動力平衡破壞導致翼面瞬間折斷失控。
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- The 4 Tiers Subsystem Grid -->
+      <div class="tech-full-card">
+        <h3>🏗️ 四大核心子系統架構（仿滴灌四層級鏈路）</h3>
+        <p style="font-size: 13px; color: var(--text-muted);">
+          點擊任一子系統卡片，可直接切換至 3D 戰術視圖並特寫該設備：
+        </p>
+        <div class="tier-cards-grid">
+          <div class="tier-card" onclick="jumpTo3DComponent('power')">
+            <div class="tier-icon">⚡</div>
+            <h4>1. 能源動力與液冷散熱</h4>
+            <p>高功率柴油發電機組、超級電容快速放電箱與低溫乙二醇冷卻液循環迴路，排除 60% 雷射廢熱。</p>
+            <div class="tier-btn-view">進入 3D 特寫 ➔</div>
+          </div>
+
+          <div class="tier-card" onclick="jumpTo3DComponent('radar')">
+            <div class="tier-icon">📡</div>
+            <h4>2. AESA 雷達與指控中心</h4>
+            <p>主動相位陣列旋轉雷達持續 360° 監控低空慢速與高速目標，提供毫秒級座標與射控計算。</p>
+            <div class="tier-btn-view">進入 3D 特寫 ➔</div>
+          </div>
+
+          <div class="tier-card" onclick="jumpTo3DComponent('combiner')">
+            <div class="tier-icon">🔬</div>
+            <h4>3. 光纖雷射合成矩陣</h4>
+            <p>多光譜相干合成（Spectral Beam Combining）技術，將數十組光纖雷射疊加匯流為 100 kW+ 超強光束。</p>
+            <div class="tier-btn-view">進入 3D 特寫 ➔</div>
+          </div>
+
+          <div class="tier-card" onclick="jumpTo3DComponent('turret')">
+            <div class="tier-icon">🎯</div>
+            <h4>4. 光學發射轉塔與自適應鏡</h4>
+            <p>大口徑望遠發射透鏡、雙波段光電跟蹤（EOTS）與每秒微調數千次的變形鏡，補償大氣熱暈。</p>
+            <div class="tier-btn-view">進入 3D 特寫 ➔</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       SECTION 3: 3D INTERACTIVE SIMULATION CANVAS & OVERLAYS
+       ========================================================================= -->
+  <div id="canvas-container"></div>
+
+  <!-- Reticle overlay for laser aiming in 3D -->
+  <div id="reticle-overlay">
+    <div class="cursor-crosshair" id="crosshair"></div>
+  </div>
+
+  <!-- Left Interaction / Kill Chain Panel in 3D View -->
+  <div class="left-panel" id="panel-3d-controls">
+    <div class="panel-title">
+      <span>3D 攔截控制台</span>
+      <span style="font-size: 11px; color: var(--accent-gold);" id="killchain-progress">步驟 1/4</span>
+    </div>
+
+    <!-- Submode selector (Guided vs Sandbox) -->
+    <div class="mode-subtabs">
+      <div class="mode-subtab active" id="subtab-killchain" onclick="setSubmode('killchain')">
+        🎯 步驟殺傷鏈導覽
+      </div>
+      <div class="mode-subtab" id="subtab-sandbox" onclick="setSubmode('sandbox')">
+        🕹️ 自由沙盒操作
+      </div>
+    </div>
+
+    <!-- Kill Chain Step List -->
+    <div id="subview-killchain">
+      <div class="killchain-steps">
+        <div class="step-item active" id="step-1" onclick="jumpToStep(1)">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h4>雷達預警與目標偵測</h4>
+            <p>AESA 雷達搜索空域，捕獲來襲火箭/無人機航向。</p>
+          </div>
+        </div>
+
+        <div class="step-item" id="step-2" onclick="jumpToStep(2)">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h4>光電鎖定與大氣補償</h4>
+            <p>砲塔極速轉動，EOTS 熱成像鎖定弱點，自適應光學啟動。</p>
+          </div>
+        </div>
+
+        <div class="step-item" id="step-3" onclick="jumpToStep(3)">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h4>雷射聚焦與熱能沉積</h4>
+            <p>100 kW+ 超強光束零延遲打擊，光斑直徑硬幣大小。</p>
+          </div>
+        </div>
+
+        <div class="step-item" id="step-4" onclick="jumpToStep(4)">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h4>結構燒蝕與空中引爆</h4>
+            <p>焦耳熱熔穿外殼，彈頭高溫殉爆或翼面折斷墜毀。</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="step-actions">
+        <button class="btn-step-action" id="btn-next-step" onclick="executeCurrentStep()">
+          <span id="step-action-icon">🚀</span> <span id="step-action-text">發射目標並進行偵測</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Sandbox Mode Controls -->
+    <div id="subview-sandbox" class="sandbox-controls">
+      <div class="control-row">
+        <div class="control-label">
+          <span>雷射功率輸出 (Laser Power)</span>
+          <span id="label-power" style="color: var(--accent-gold);">100 kW</span>
+        </div>
+        <input type="range" min="50" max="150" value="100" class="control-slider" id="slider-power" oninput="updatePower(this.value)">
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>天候大氣干擾 (Weather)</span>
+          <span id="label-weather">晴朗無雲</span>
+        </div>
+        <select id="select-weather" class="btn-spawn" style="width: 100%;" onchange="changeWeather(this.value)">
+          <option value="clear">晴朗乾淨 (大氣衰減最小)</option>
+          <option value="dust">沙漠沙塵暴 (強烈散射)</option>
+          <option value="fog">低空濃雲霧 (水氣吸收)</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <label style="display:flex; align-items:center; gap:8px; font-size:11px; cursor:pointer;">
+          <input type="checkbox" id="check-ao" checked onchange="toggleAdaptiveOptics(this.checked)">
+          <span>自適應光學波前補償 (Adaptive Optics) [ON]</span>
+        </label>
+      </div>
+
+      <div class="control-row">
+        <div class="control-label">
+          <span>釋放假想敵空中威脅</span>
+        </div>
+        <div class="target-spawn-grid">
+          <button class="btn-spawn" onclick="spawnThreat('drone')">🛩️ 自殺無人機</button>
+          <button class="btn-spawn" onclick="spawnThreat('rocket')">🚀 122mm 火箭彈</button>
+          <button class="btn-spawn" onclick="spawnThreat('mortar')">💣 120mm 迫擊砲</button>
+          <button class="btn-spawn" onclick="spawnThreat('swarm')">⚡ 蜂群攻擊 (3架)</button>
+        </div>
+      </div>
+
+      <div class="step-actions" style="margin-top: 6px;">
+        <button class="btn-step-action btn-fire-hold" id="btn-fire-laser" onmousedown="startFiring()" onmouseup="stopFiring()" onmouseleave="stopFiring()">
+          ⚡ 按住進行雷射照射 (Hold to Fire)
+        </button>
+      </div>
+    </div>
+
+    <!-- Real-time Thermal Telemetry Box -->
+    <div class="target-pip-box" id="target-telemetry">
+      <div class="pip-header">
+        <span>目標熱能感測 (THERMAL IR SENSOR)</span>
+        <span id="target-status-text">WAITING TARGET</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); margin-top:2px;">
+        <span style="color: var(--text-muted)">表面溫度:</span>
+        <span id="target-temp-val" style="color: #ffaa00;">32 °C</span>
+      </div>
+      <div style="display: flex; justify-content: space-between; font-size: 11px; font-family: var(--font-mono); margin-top:2px;">
+        <span style="color: var(--text-muted)">結構燒蝕度:</span>
+        <span id="target-ablation-val" style="color: var(--accent-red);">0 %</span>
+      </div>
+      <div class="pip-heat-bar">
+        <div class="pip-heat-fill" id="pip-heat-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom Tactical Telemetry Bar in 3D -->
+  <div class="bottom-hud" id="bottom-hud-bar">
+    <div style="display:flex; align-items:center; gap:8px;">
+      <div class="status-dot" id="system-status-dot"></div>
+      <span style="color: #fff; font-weight:600;">IRON BEAM M-HELWS</span>
+    </div>
+
+    <div class="tactical-log" id="hud-tactical-log">
+      戰備狀態：系統各子模組運作正常，空域監控中...
+    </div>
+
+    <div style="color: var(--text-muted); font-size: 10px;">
+      FPS: <span id="fps-display" style="color: var(--accent-green);">60</span> | 視角旋轉: 滑鼠拖曳
+    </div>
+  </div>
+
+  <!-- 3D Tooltip Label -->
+  <div class="component-annotation" id="comp-annotation">標註文字</div>
+
+  <script>
+    /* =========================================================================
+       AUDIO SYNTHESIZER (Pure Web Audio API)
+       ========================================================================= */
+    class TacticalAudioEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+        this.laserHumGain = null;
+        this.laserHumOsc = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          this.ctx = new AudioContext();
+        }
+        if (this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playRadarPing() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1400, now);
+        osc.frequency.exponentialRampToValueAtTime(700, now + 0.15);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+
+      playLockOnTone() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(880, now);
+        osc.frequency.setValueAtTime(1760, now + 0.08);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+
+      startLaserHum() {
+        if (!this.enabled || !this.ctx) return;
+        if (this.laserHumOsc) return;
+
+        const now = this.ctx.currentTime;
+        this.laserHumOsc = this.ctx.createOscillator();
+        const osc2 = this.ctx.createOscillator();
+        this.laserHumGain = this.ctx.createGain();
+
+        this.laserHumOsc.type = 'sawtooth';
+        this.laserHumOsc.frequency.setValueAtTime(120, now);
+        this.laserHumOsc.frequency.linearRampToValueAtTime(240, now + 0.5);
+
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(60, now);
+
+        this.laserHumGain.gain.setValueAtTime(0.01, now);
+        this.laserHumGain.gain.linearRampToValueAtTime(0.18, now + 0.1);
+
+        this.laserHumOsc.connect(this.laserHumGain);
+        osc2.connect(this.laserHumGain);
+        this.laserHumGain.connect(this.ctx.destination);
+
+        this.laserHumOsc.start(now);
+        osc2.start(now);
+        this.laserHumOsc2 = osc2;
+      }
+
+      stopLaserHum() {
+        if (!this.laserHumOsc || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        try {
+          this.laserHumGain.gain.linearRampToValueAtTime(0.001, now + 0.1);
+          setTimeout(() => {
+            if (this.laserHumOsc) {
+              this.laserHumOsc.stop();
+              this.laserHumOsc.disconnect();
+              this.laserHumOsc = null;
             }
-        ];
+            if (this.laserHumOsc2) {
+              this.laserHumOsc2.stop();
+              this.laserHumOsc2.disconnect();
+              this.laserHumOsc2 = null;
+            }
+          }, 120);
+        } catch(e) {}
+      }
 
-        let currentChapter = 6;
+      playExplosion() {
+        if (!this.enabled || !this.ctx) return;
+        const now = this.ctx.currentTime;
+        const bufferSize = this.ctx.sampleRate * 0.9;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
 
-        // 渲染頂部 Ch01~Ch10 導覽列
-        function renderTabs() {
-            const container = document.getElementById('chapter-tabs');
-            container.innerHTML = '';
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
 
-            chaptersData.forEach(ch => {
-                const isActive = ch.id === currentChapter;
-                const btn = document.createElement('button');
-                btn.onclick = () => switchChapter(ch.id);
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1000, now);
+        filter.frequency.exponentialRampToValueAtTime(80, now + 0.8);
 
-                let baseClasses = "px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-1.5 ";
-                if (isActive) {
-                    baseClasses += "bg-amber-400 text-[#0f2942] shadow-md scale-105";
-                } else if (ch.ready) {
-                    baseClasses += "bg-slate-800 text-white hover:bg-slate-700 border border-teal-500/60";
-                } else {
-                    baseClasses += "bg-slate-800/50 text-slate-400 hover:bg-slate-800 hover:text-slate-200";
-                }
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.35, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
 
-                btn.className = baseClasses;
-                btn.innerHTML = `
-                    <span>${ch.code}</span>
-                    ${ch.ready ? '<span class="w-2 h-2 rounded-full bg-teal-400" title="已完成完整互動圖表"></span>' : ''}
-                `;
-                container.appendChild(btn);
+        noise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        noise.start(now);
+        noise.stop(now + 0.9);
+      }
+    }
+
+    const audio = new TacticalAudioEngine();
+
+    function toggleAudio() {
+      audio.init();
+      audio.enabled = !audio.enabled;
+      const btn = document.getElementById('btn-sound');
+      btn.innerHTML = audio.enabled ? `<span id="sound-icon">🔊</span> 音效開啓` : `<span id="sound-icon">🔇</span> 音效靜音`;
+    }
+
+    /* =========================================================================
+       PHOTO GALLERY DATA & INTERACTION
+       ========================================================================= */
+    const galleryData = [
+      {
+        title: "Iron Beam-M 重型車載高能雷射防禦車",
+        badge: "RAFAEL OFFICIAL SOURCE - MOBILE IRON BEAM-M",
+        image: "assets/real_iron_beam_mobile.jpg",
+        target3DComp: "turret",
+        desc: "安裝在 8x8 高機動性重型戰術裝甲卡車底盤上的「全功能一體化 (All-in-One)」高能雷射防空系統。具備機動伴隨野戰部隊防空能力，從雷達搜索、能源供應、高壓液冷到發射轉塔全部整合於單一車輛載台。",
+        hotspots: [
+          {
+            id: 1,
+            label: "1",
+            x: 68, y: 35,
+            title: "光學發射轉塔 (Beam Director)",
+            desc: "安裝於車尾頂部，內部整合大口徑光纖雷射望遠鏡筒與變形反射鏡，具備極高的迴轉與俯仰角速度。"
+          },
+          {
+            id: 2,
+            label: "2",
+            x: 48, y: 55,
+            title: "大流量工業液冷機組 (Liquid Chiller)",
+            desc: "百瓩級雷射持續照射時會產生數百千瓦廢熱，此區域配備高效率乙二醇循環排熱風扇與散熱排。"
+          },
+          {
+            id: 3,
+            label: "3",
+            x: 32, y: 62,
+            title: "重型柴油發電與超級電容模組",
+            desc: "為雷射激勵源提供高電壓、大電流的瞬間脈衝放電支援，確保能連續擊落多個來襲目標。"
+          },
+          {
+            id: 4,
+            label: "4",
+            x: 82, y: 82,
+            title: "液壓平衡支撐柱 (Stabilizers)",
+            desc: "在射擊時向下展開固定地面，避免重車輪胎彈性晃動影響微弧度（µrad）等級的光學瞄準精度。"
+          }
+        ]
+      },
+      {
+        title: "核心光學發射轉塔與鏡頭特寫",
+        badge: "RAFAEL OPTICAL TURRET SYSTEM CLOSE-UP",
+        image: "assets/real_beam_director.jpg",
+        target3DComp: "turret",
+        desc: "Iron Beam 的核心致命終端。採用半球形空氣動力外罩，主透鏡口徑顯著大於普通偵察鏡頭，具備超高光學通量與低熱吸收率塗層。",
+        hotspots: [
+          {
+            id: 1,
+            label: "1",
+            x: 52, y: 48,
+            title: "主雷射發射透鏡 (Primary Aperture)",
+            desc: "鍍有多層介電質超低損耗增透膜，承受 100 kW+ 能量而不產生熱裂紋，將光束極限聚焦在目標表面。"
+          },
+          {
+            id: 2,
+            label: "2",
+            x: 75, y: 40,
+            title: "同軸光電追蹤系統 (EOTS Sensors)",
+            desc: "包含中波紅外線（MWIR）熱成像與高解析度晝間攝影機，能在幾毫秒內咬定高速穿行的迫擊砲彈。"
+          },
+          {
+            id: 3,
+            label: "3",
+            x: 40, y: 80,
+            title: "自適應光學變形鏡 (Adaptive Optics)",
+            desc: "位於鏡筒後方內部，由壓電致動器每秒推動數千次，預先補償大氣熱透鏡與亂流干擾。"
+          }
+        ]
+      },
+      {
+        title: "實彈靶場測試：高能雷射光束照射瞬間",
+        badge: "LIVE FIELD TEST - ISRAEL MoD & RAFAEL",
+        image: "assets/real_combat_engagement.jpg",
+        target3DComp: "combat",
+        desc: "在以色列南部內蓋夫沙漠試驗場進行的實彈攔截實況。雖然 1064nm 近紅外雷射肉眼不可見，但在極高能量激發下，雷射路徑上的空氣微粒游離化，在夜視鏡與紅外相機中形成壯觀的光柱。",
+        hotspots: [
+          {
+            id: 1,
+            label: "1",
+            x: 50, y: 50,
+            title: "100 kW+ 高能光束能量通道",
+            desc: "光子流以每秒 300,000 公里光速傳播，攔截過程零前置量、零飛行時間，真正實現『看見即命中』。"
+          },
+          {
+            id: 2,
+            label: "2",
+            x: 25, y: 20,
+            title: "光斑能量沉積 (Energy Dwell)",
+            desc: "系統在 2 至 4 秒內將能量集中在直徑約數公分的光斑內，使目標結構承受數千焦耳的極限熱流密度。"
+          }
+        ]
+      },
+      {
+        title: "真實靶標攔截結果：熔穿穿孔與殘骸",
+        badge: "REAL TARGET ABLATION & STRUCTURAL DAMAGE",
+        image: "assets/real_target_damage.jpg",
+        target3DComp: "target",
+        desc: "以色列國防部發布的實測毀傷照片。展現雷射對無人機機翼複合材料的瞬間燒蝕穿孔，以及迫擊砲彈引信高溫引爆後的金屬殘件。",
+        hotspots: [
+          {
+            id: 1,
+            label: "1",
+            x: 45, y: 45,
+            title: "碳纖維外殼氣化與金屬熔融",
+            desc: "目標表面受熱超過 1200°C，材料強度瞬間崩解，氣流直接撕裂無人機機翼翼梁。"
+          },
+          {
+            id: 2,
+            label: "2",
+            x: 70, y: 65,
+            title: "內部火藥庫殉爆 (Cook-off)",
+            desc: "迫擊砲彈與火箭彈受熱後，內部固體推進劑被引燃，產生巨大的內部蒸氣壓凌空解體自爆。"
+          }
+        ]
+      },
+      {
+        title: "Iron Beam 固定式戰術防禦貨櫃陣地版",
+        badge: "FIXED SHELTER CONFIGURATION",
+        image: "assets/real_iron_beam_fixed.jpg",
+        target3DComp: "power",
+        desc: "採用標準戰術貨櫃設計的基地/陣地守備型。適合部署於前線基地、關鍵基礎設施（如發電廠、機場、雷達站）周圍進行 24 小時全天候防護，可與鐵穹指揮網絡無縫串接連線。",
+        hotspots: [
+          {
+            id: 1,
+            label: "1",
+            x: 50, y: 35,
+            title: "升降式發射平台",
+            desc: "平時可收納於防護裝甲蓋板內，戰時自動頂升展開，降低風沙鹽霧侵蝕。"
+          },
+          {
+            id: 2,
+            label: "2",
+            x: 35, y: 65,
+            title: "模組化光纖雷射機櫃陣列",
+            desc: "標準機架安裝數十個 10kW 固態光纖雷射放大單元，維護時可隨時抽換熱插拔模組。"
+          }
+        ]
+      }
+    ];
+
+    let currentPhotoIndex = 0;
+
+    function renderGalleryPhoto(idx) {
+      currentPhotoIndex = idx;
+      const data = galleryData[idx];
+
+      document.getElementById('main-gallery-img').src = data.image;
+      document.getElementById('photo-title').innerText = data.title;
+      document.getElementById('photo-badge').innerText = data.badge;
+      document.getElementById('photo-desc').innerText = data.desc;
+
+      // Update thumbnails active state
+      const thumbs = document.querySelectorAll('.thumb-card');
+      thumbs.forEach((t, i) => t.classList.toggle('active', i === idx));
+
+      // Reset hotspot explanation
+      document.getElementById('hotspot-title').innerText = "點擊照片上的圓圈標籤";
+      document.getElementById('hotspot-desc').innerText = "可深入查看該元件在實機上的工程細節與功能說明。";
+
+      // Render Hotspots pins
+      const layer = document.getElementById('hotspots-layer');
+      layer.innerHTML = '';
+      data.hotspots.forEach(hp => {
+        const pin = document.createElement('div');
+        pin.className = 'photo-hotspot';
+        pin.style.left = `${hp.x}%`;
+        pin.style.top = `${hp.y}%`;
+        pin.innerHTML = `<div class="photo-hotspot-inner">${hp.label}</div>`;
+        pin.onclick = (e) => {
+          e.stopPropagation();
+          selectHotspot(hp, pin);
+        };
+        layer.appendChild(pin);
+      });
+    }
+
+    function selectHotspot(hp, pinEl) {
+      document.querySelectorAll('.photo-hotspot').forEach(p => p.classList.remove('active'));
+      pinEl.classList.add('active');
+
+      document.getElementById('hotspot-title').innerText = hp.title;
+      document.getElementById('hotspot-desc').innerText = hp.desc;
+    }
+
+    function selectGalleryPhoto(idx) {
+      renderGalleryPhoto(idx);
+    }
+
+    function jumpFromPhotoTo3D() {
+      const data = galleryData[currentPhotoIndex];
+      switchMainView('sim3d');
+      if (data.target3DComp) {
+        jumpTo3DComponent(data.target3DComp);
+      }
+    }
+
+    /* =========================================================================
+       MAIN 3-TIER VIEW SWITCHER
+       ========================================================================= */
+    let currentMainView = 'photos';
+
+    function switchMainView(view) {
+      currentMainView = view;
+      document.getElementById('btn-nav-photos').classList.toggle('active', view === 'photos');
+      document.getElementById('btn-nav-tech').classList.toggle('active', view === 'tech');
+      document.getElementById('btn-nav-sim3d').classList.toggle('active', view === 'sim3d');
+
+      const photoView = document.getElementById('view-photos');
+      const techView = document.getElementById('view-tech');
+      const simControls = document.getElementById('panel-3d-controls');
+      const bottomHud = document.getElementById('bottom-hud-bar');
+
+      if (view === 'photos') {
+        photoView.style.display = 'flex';
+        techView.style.display = 'none';
+        simControls.style.display = 'none';
+        bottomHud.style.display = 'none';
+        crosshairEl.style.display = 'none';
+      } else if (view === 'tech') {
+        photoView.style.display = 'none';
+        techView.style.display = 'flex';
+        simControls.style.display = 'none';
+        bottomHud.style.display = 'none';
+        crosshairEl.style.display = 'none';
+      } else {
+        photoView.style.display = 'none';
+        techView.style.display = 'none';
+        simControls.style.display = 'block';
+        bottomHud.style.display = 'flex';
+        if (currentSubmode === 'sandbox') crosshairEl.style.display = 'block';
+      }
+    }
+
+    function jumpTo3DComponent(compKey) {
+      switchMainView('sim3d');
+      if (compKey === 'turret') focusComponent('turret');
+      else if (compKey === 'power') focusComponent('power');
+      else if (compKey === 'radar') focusComponent('radar');
+      else if (compKey === 'combiner') focusComponent('combiner');
+      else focusComponent('reset');
+    }
+
+    /* =========================================================================
+       THREE.JS 3D SCENE & PROCEDURAL MODEL
+       ========================================================================= */
+    let scene, camera, renderer, controls;
+    let clock = new THREE.Clock();
+
+    let ironBeamSystemGroup;
+    let turretBase, turretGimbal, turretAperture, radarDome;
+    let laserBeamMesh, laserGlowMesh, laserImpactSparkMesh;
+    let activeTargets = [];
+    let explosionParticles = [];
+
+    // Engagement & Simulation States
+    let currentSubmode = 'killchain'; // 'killchain' or 'sandbox'
+    let currentKillchainStep = 1;
+    let isLaserFiring = false;
+    let laserPowerKW = 100;
+    let adaptiveOpticsEnabled = true;
+    let currentWeather = 'clear';
+
+    let currentTarget = null;
+
+    // Mouse aiming in 3D
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let aimSkyTarget = new THREE.Vector3(0, 50, 150);
+
+    // DOM Elements
+    const crosshairEl = document.getElementById('crosshair');
+    const hudLogEl = document.getElementById('hud-tactical-log');
+    const targetStatusText = document.getElementById('target-status-text');
+    const targetTempVal = document.getElementById('target-temp-val');
+    const targetAblationVal = document.getElementById('target-ablation-val');
+    const pipHeatFill = document.getElementById('pip-heat-fill');
+    const annotationEl = document.getElementById('comp-annotation');
+
+    function init3D() {
+      const container = document.getElementById('canvas-container');
+
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x060a12);
+      scene.fog = new THREE.FogExp2(0x060a12, 0.0025);
+
+      camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.5, 2000);
+      camera.position.set(45, 30, 75);
+
+      renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+      container.appendChild(renderer.domElement);
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.05;
+      controls.maxPolarAngle = Math.PI / 2 - 0.02;
+      controls.minDistance = 10;
+      controls.maxDistance = 600;
+      controls.target.set(0, 10, 0);
+
+      setupLighting();
+      setupTerrainAndEnvironment();
+      buildIronBeamSystem();
+      setupLaserBeams();
+      setupEvents();
+
+      animate();
+    }
+
+    function setupLighting() {
+      const ambientLight = new THREE.AmbientLight(0x223344, 1.2);
+      scene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0xddeeff, 1.6);
+      dirLight.position.set(60, 100, 40);
+      dirLight.castShadow = true;
+      dirLight.shadow.mapSize.width = 2048;
+      dirLight.shadow.mapSize.height = 2048;
+      dirLight.shadow.camera.near = 0.5;
+      dirLight.shadow.camera.far = 400;
+      const d = 80;
+      dirLight.shadow.camera.left = -d;
+      dirLight.shadow.camera.right = d;
+      dirLight.shadow.camera.top = d;
+      dirLight.shadow.camera.bottom = -d;
+      scene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0x00f0ff, 0.5);
+      fillLight.position.set(-60, 20, -50);
+      scene.add(fillLight);
+    }
+
+    function setupTerrainAndEnvironment() {
+      const groundGeo = new THREE.PlaneGeometry(1200, 1200, 64, 64);
+      const groundMat = new THREE.MeshStandardMaterial({
+        color: 0x1b242e,
+        roughness: 0.9,
+        metalness: 0.1
+      });
+      const ground = new THREE.Mesh(groundGeo, groundMat);
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = 0;
+      ground.receiveShadow = true;
+      scene.add(ground);
+
+      const padGeo = new THREE.CylinderGeometry(28, 30, 1.2, 32);
+      const padMat = new THREE.MeshStandardMaterial({
+        color: 0x2a3642,
+        roughness: 0.8,
+        metalness: 0.2
+      });
+      const pad = new THREE.Mesh(padGeo, padMat);
+      pad.position.set(0, 0.6, 0);
+      pad.receiveShadow = true;
+      pad.castShadow = true;
+      scene.add(pad);
+
+      const grid = new THREE.GridHelper(52, 26, 0x00f0ff, 0x1e3a50);
+      grid.position.y = 1.25;
+      scene.add(grid);
+
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const px = Math.cos(angle) * 26;
+        const pz = Math.sin(angle) * 26;
+
+        const pylon = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2, 8), new THREE.MeshStandardMaterial({ color: 0x334455 }));
+        pylon.position.set(px, 2, pz);
+        scene.add(pylon);
+
+        const beacon = new THREE.Mesh(new THREE.SphereGeometry(0.35, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00f0ff }));
+        beacon.position.set(px, 3.1, pz);
+        scene.add(beacon);
+      }
+    }
+
+    function buildIronBeamSystem() {
+      ironBeamSystemGroup = new THREE.Group();
+
+      const armorMat = new THREE.MeshStandardMaterial({ color: 0x3d4a58, roughness: 0.4, metalness: 0.7 });
+      const darkMetalMat = new THREE.MeshStandardMaterial({ color: 0x1e2733, roughness: 0.6, metalness: 0.8 });
+      const chromeMat = new THREE.MeshStandardMaterial({ color: 0x8899aa, roughness: 0.2, metalness: 0.95 });
+      const glowCyanMat = new THREE.MeshBasicMaterial({ color: 0x00f0ff });
+      const glowGoldMat = new THREE.MeshBasicMaterial({ color: 0xffb703 });
+
+      // TIER 1: POWER & LIQUID CHILLER
+      const powerStationGroup = new THREE.Group();
+      powerStationGroup.name = "comp_power";
+      powerStationGroup.position.set(-14, 1.2, -4);
+
+      const genBox = new THREE.Mesh(new THREE.BoxGeometry(9, 6, 7), armorMat);
+      genBox.position.set(0, 3, 0);
+      genBox.castShadow = true;
+      powerStationGroup.add(genBox);
+
+      for (let f = -1; f <= 1; f += 2) {
+        const fanRim = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.4, 16), darkMetalMat);
+        fanRim.rotation.x = Math.PI / 2;
+        fanRim.position.set(f * 2.4, 4.2, 3.6);
+        powerStationGroup.add(fanRim);
+
+        const fanCenter = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.5, 12), chromeMat);
+        fanCenter.rotation.x = Math.PI / 2;
+        fanCenter.position.set(f * 2.4, 4.2, 3.7);
+        powerStationGroup.add(fanCenter);
+      }
+
+      const coolantPipeCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(4.5, 2, 0),
+        new THREE.Vector3(8, 1.8, -1),
+        new THREE.Vector3(12, 1.8, -2)
+      ]);
+      const coolantPipe = new THREE.Mesh(
+        new THREE.TubeGeometry(coolantPipeCurve, 16, 0.35, 8, false),
+        new THREE.MeshStandardMaterial({ color: 0x0077ff, metalness: 0.6, roughness: 0.3 })
+      );
+      powerStationGroup.add(coolantPipe);
+
+      const genLed = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.3, 0.1), glowCyanMat);
+      genLed.position.set(0, 5, 3.52);
+      powerStationGroup.add(genLed);
+      ironBeamSystemGroup.add(powerStationGroup);
+
+      // TIER 2: C4I SHELTER & AESA RADAR
+      const radarStationGroup = new THREE.Group();
+      radarStationGroup.name = "comp_radar";
+      radarStationGroup.position.set(13, 1.2, -6);
+
+      const shelter = new THREE.Mesh(new THREE.BoxGeometry(7, 5, 6), armorMat);
+      shelter.position.set(0, 2.5, 0);
+      shelter.castShadow = true;
+      radarStationGroup.add(shelter);
+
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.35, 7, 8), darkMetalMat);
+      mast.position.set(-2.2, 6, -1.8);
+      radarStationGroup.add(mast);
+
+      radarDome = new THREE.Group();
+      radarDome.position.set(1.5, 5.2, 0);
+      const radarPedestal = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 1.2, 16), darkMetalMat);
+      radarDome.add(radarPedestal);
+
+      const radarAntenna = new THREE.Mesh(new THREE.BoxGeometry(3.6, 2.4, 0.5), new THREE.MeshStandardMaterial({
+        color: 0x4a5d6e,
+        roughness: 0.3,
+        metalness: 0.7
+      }));
+      radarAntenna.position.set(0, 1.8, 0);
+      radarAntenna.rotation.x = -0.15;
+      radarDome.add(radarAntenna);
+      radarStationGroup.add(radarDome);
+      ironBeamSystemGroup.add(radarStationGroup);
+
+      // TIER 3: LASER COMBINER CHAMBER
+      const combinerGroup = new THREE.Group();
+      combinerGroup.name = "comp_combiner";
+      combinerGroup.position.set(-2, 1.2, -6);
+
+      const combinerBox = new THREE.Mesh(new THREE.BoxGeometry(9, 4.5, 5), darkMetalMat);
+      combinerBox.position.set(0, 2.25, 0);
+      combinerBox.castShadow = true;
+      combinerGroup.add(combinerBox);
+
+      for (let i = 0; i < 6; i++) {
+        const fiber = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 4.2, 8), glowGoldMat);
+        fiber.rotation.z = Math.PI / 2;
+        fiber.position.set(0, 1.5 + (i * 0.45), 2.52);
+        combinerGroup.add(fiber);
+      }
+
+      const conduitCurve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(0, 3, 2.5),
+        new THREE.Vector3(0, 2.5, 5),
+        new THREE.Vector3(2, 3, 7)
+      ]);
+      const conduitMesh = new THREE.Mesh(new THREE.TubeGeometry(conduitCurve, 16, 0.45, 12, false), chromeMat);
+      combinerGroup.add(conduitMesh);
+      ironBeamSystemGroup.add(combinerGroup);
+
+      // TIER 4: BEAM DIRECTOR TURRET
+      const turretSystem = new THREE.Group();
+      turretSystem.name = "comp_turret";
+      turretSystem.position.set(0, 1.2, 3);
+
+      const turretPlatform = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.6, 2, 32), armorMat);
+      turretPlatform.position.set(0, 1, 0);
+      turretPlatform.castShadow = true;
+      turretSystem.add(turretPlatform);
+
+      turretBase = new THREE.Group();
+      turretBase.position.set(0, 2, 0);
+
+      const rotatingPlinth = new THREE.Mesh(new THREE.CylinderGeometry(4.2, 4.5, 1.5, 32), darkMetalMat);
+      rotatingPlinth.position.set(0, 0.75, 0);
+      turretBase.add(rotatingPlinth);
+
+      const trunnionL = new THREE.Mesh(new THREE.BoxGeometry(1.2, 4, 2.8), armorMat);
+      trunnionL.position.set(-2.2, 3, 0);
+      turretBase.add(trunnionL);
+
+      const trunnionR = new THREE.Mesh(new THREE.BoxGeometry(1.2, 4, 2.8), armorMat);
+      trunnionR.position.set(2.2, 3, 0);
+      turretBase.add(trunnionR);
+
+      turretGimbal = new THREE.Group();
+      turretGimbal.position.set(0, 3.8, 0);
+
+      const housingCenter = new THREE.Mesh(new THREE.SphereGeometry(2.3, 32, 24), armorMat);
+      housingCenter.scale.set(1, 1, 1.3);
+      turretGimbal.add(housingCenter);
+
+      turretAperture = new THREE.Mesh(new THREE.CylinderGeometry(1.0, 1.05, 1.2, 32), darkMetalMat);
+      turretAperture.rotation.x = Math.PI / 2;
+      turretAperture.position.set(0, 0, 2.2);
+
+      const lensMat = new THREE.MeshPhysicalMaterial({
+        color: 0x00e5ff,
+        metalness: 0.9,
+        roughness: 0.1,
+        reflectivity: 1.0,
+        clearcoat: 1.0
+      });
+      const lens = new THREE.Mesh(new THREE.CircleGeometry(0.95, 32), lensMat);
+      lens.position.set(0, 0.61, 0);
+      lens.rotation.x = -Math.PI / 2;
+      turretAperture.add(lens);
+      turretGimbal.add(turretAperture);
+
+      const eotsDome = new THREE.Mesh(new THREE.SphereGeometry(0.65, 16, 16), chromeMat);
+      eotsDome.position.set(1.4, 0.9, 1.4);
+      const eotsLens = new THREE.Mesh(new THREE.CircleGeometry(0.35, 16), new THREE.MeshBasicMaterial({ color: 0xff0055 }));
+      eotsLens.position.set(0, 0, 0.6);
+      eotsDome.add(eotsLens);
+      turretGimbal.add(eotsDome);
+
+      turretBase.add(turretGimbal);
+      turretSystem.add(turretBase);
+      ironBeamSystemGroup.add(turretSystem);
+
+      scene.add(ironBeamSystemGroup);
+    }
+
+    function setupLaserBeams() {
+      const coreGeo = new THREE.CylinderGeometry(0.12, 0.12, 1, 16, 1, true);
+      const coreMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 });
+      laserBeamMesh = new THREE.Mesh(coreGeo, coreMat);
+      laserBeamMesh.visible = false;
+      scene.add(laserBeamMesh);
+
+      const glowGeo = new THREE.CylinderGeometry(0.45, 0.45, 1, 16, 1, true);
+      const glowMat = new THREE.MeshBasicMaterial({
+        color: 0xff1144,
+        transparent: true,
+        opacity: 0.45,
+        blending: THREE.AdditiveBlending,
+        side: THREE.DoubleSide
+      });
+      laserGlowMesh = new THREE.Mesh(glowGeo, glowMat);
+      laserGlowMesh.visible = false;
+      scene.add(laserGlowMesh);
+
+      const sparkCount = 30;
+      const sparkGeo = new THREE.BufferGeometry();
+      const sparkPos = new Float32Array(sparkCount * 3);
+      sparkGeo.setAttribute('position', new THREE.BufferAttribute(sparkPos, 3));
+      const sparkMat = new THREE.PointsMaterial({
+        color: 0xffe600,
+        size: 1.5,
+        transparent: true,
+        blending: THREE.AdditiveBlending
+      });
+      laserImpactSparkMesh = new THREE.Points(sparkGeo, sparkMat);
+      laserImpactSparkMesh.visible = false;
+      scene.add(laserImpactSparkMesh);
+    }
+
+    function updateLaserBeam(startPoint, endPoint) {
+      if (!isLaserFiring) {
+        laserBeamMesh.visible = false;
+        laserGlowMesh.visible = false;
+        laserImpactSparkMesh.visible = false;
+        return;
+      }
+
+      laserBeamMesh.visible = true;
+      laserGlowMesh.visible = true;
+      laserImpactSparkMesh.visible = true;
+
+      const dir = new THREE.Vector3().subVectors(endPoint, startPoint);
+      const length = dir.length();
+      const mid = new THREE.Vector3().addVectors(startPoint, endPoint).multiplyScalar(0.5);
+
+      laserBeamMesh.position.copy(mid);
+      laserGlowMesh.position.copy(mid);
+
+      laserBeamMesh.scale.set(1, length, 1);
+
+      let spreadRadius = 0.45;
+      if (!adaptiveOpticsEnabled || currentWeather !== 'clear') {
+        const jitter = (Math.random() - 0.5) * 0.8;
+        spreadRadius = currentWeather === 'dust' ? 1.6 : 1.1;
+        mid.x += jitter;
+      }
+
+      laserGlowMesh.scale.set(spreadRadius * (laserPowerKW / 100), length, spreadRadius * (laserPowerKW / 100));
+
+      const orientation = new THREE.Matrix4();
+      orientation.lookAt(startPoint, endPoint, new THREE.Vector3(0, 1, 0));
+      orientation.multiply(new THREE.Matrix4().makeRotationX(Math.PI / 2));
+
+      laserBeamMesh.setRotationFromMatrix(orientation);
+      laserGlowMesh.setRotationFromMatrix(orientation);
+
+      const positions = laserImpactSparkMesh.geometry.attributes.position.array;
+      for (let i = 0; i < positions.length; i += 3) {
+        positions[i] = endPoint.x + (Math.random() - 0.5) * 1.5;
+        positions[i + 1] = endPoint.y + (Math.random() - 0.5) * 1.5;
+        positions[i + 2] = endPoint.z + (Math.random() - 0.5) * 1.5;
+      }
+      laserImpactSparkMesh.geometry.attributes.position.needsUpdate = true;
+    }
+
+    /* =========================================================================
+       THREAT TARGET CLASS
+       ========================================================================= */
+    class ThreatTarget {
+      constructor(type, startPos, velocity) {
+        this.type = type;
+        this.mesh = new THREE.Group();
+        this.velocity = velocity;
+        this.health = 100;
+        this.temperature = 32;
+        this.isDestroyed = false;
+
+        this.buildMesh();
+        this.mesh.position.copy(startPos);
+        scene.add(this.mesh);
+      }
+
+      buildMesh() {
+        const darkBodyMat = new THREE.MeshStandardMaterial({ color: 0x2b333c, roughness: 0.5 });
+        const carbonMat = new THREE.MeshStandardMaterial({ color: 0x11161d, roughness: 0.3 });
+
+        if (this.type === 'drone') {
+          const body = new THREE.Mesh(new THREE.ConeGeometry(1.6, 6, 4), carbonMat);
+          body.rotation.x = Math.PI / 2;
+          this.mesh.add(body);
+
+          const wings = new THREE.Mesh(new THREE.BoxGeometry(7, 0.15, 2.5), carbonMat);
+          wings.position.set(0, 0, -0.5);
+          this.mesh.add(wings);
+
+          const prop = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.15, 0.05), new THREE.MeshBasicMaterial({ color: 0x888888 }));
+          prop.position.set(0, 0, -3.1);
+          prop.name = "prop";
+          this.mesh.add(prop);
+        } else if (this.type === 'rocket') {
+          const tube = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.35, 7, 16), darkBodyMat);
+          tube.rotation.x = Math.PI / 2;
+          this.mesh.add(tube);
+
+          const nose = new THREE.Mesh(new THREE.ConeGeometry(0.35, 1.2, 16), new THREE.MeshStandardMaterial({ color: 0x882222 }));
+          nose.rotation.x = Math.PI / 2;
+          nose.position.set(0, 0, 4.1);
+          this.mesh.add(nose);
+
+          for (let f = 0; f < 4; f++) {
+            const fin = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 1.2), darkBodyMat);
+            fin.rotation.z = (f * Math.PI) / 2;
+            fin.position.set(0, 0, -3.2);
+            this.mesh.add(fin);
+          }
+        } else {
+          const mortarBody = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.6, 2.8, 16), darkBodyMat);
+          mortarBody.rotation.x = Math.PI / 2;
+          this.mesh.add(mortarBody);
+
+          const tail = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.5, 8), darkBodyMat);
+          tail.rotation.x = -Math.PI / 2;
+          tail.position.set(0, 0, -1.8);
+          this.mesh.add(tail);
+        }
+
+        const hotSpotGeo = new THREE.SphereGeometry(0.6, 16, 16);
+        this.hotSpotMat = new THREE.MeshBasicMaterial({
+          color: 0xff0000,
+          transparent: true,
+          opacity: 0.0
+        });
+        this.hotSpotMesh = new THREE.Mesh(hotSpotGeo, this.hotSpotMat);
+        this.mesh.add(this.hotSpotMesh);
+      }
+
+      update(delta) {
+        if (this.isDestroyed) return;
+
+        this.mesh.position.addScaledVector(this.velocity, delta * 30);
+        const nextPos = new THREE.Vector3().addVectors(this.mesh.position, this.velocity);
+        this.mesh.lookAt(nextPos);
+
+        const prop = this.mesh.getObjectByName("prop");
+        if (prop) prop.rotation.z += delta * 40;
+
+        if (!isLaserFiring || currentTarget !== this) {
+          if (this.temperature > 32) {
+            this.temperature = Math.max(32, this.temperature - delta * 150);
+          }
+        }
+
+        if (this.temperature > 50) {
+          this.hotSpotMat.opacity = Math.min(0.9, (this.temperature - 50) / 400);
+          if (this.temperature < 350) {
+            this.hotSpotMat.color.setHex(0xff3300);
+          } else if (this.temperature < 800) {
+            this.hotSpotMat.color.setHex(0xffaa00);
+          } else {
+            this.hotSpotMat.color.setHex(0xffffff);
+          }
+        } else {
+          this.hotSpotMat.opacity = 0;
+        }
+
+        if (this.mesh.position.y <= 1.0 || this.mesh.position.distanceTo(new THREE.Vector3(0, 0, 0)) < 8) {
+          this.destroy(false);
+        }
+      }
+
+      applyLaserEnergy(powerKW, delta) {
+        let heatingRate = (powerKW / 100) * 450;
+        if (!adaptiveOpticsEnabled) heatingRate *= 0.45;
+        if (currentWeather === 'dust') heatingRate *= 0.55;
+        if (currentWeather === 'fog') heatingRate *= 0.65;
+
+        this.temperature += heatingRate * delta;
+
+        if (this.temperature >= 250) {
+          const dmgRate = (this.temperature / 1000) * 60;
+          this.health -= dmgRate * delta;
+        }
+
+        if (this.health <= 0) {
+          this.destroy(true);
+        }
+      }
+
+      destroy(wasIntercepted) {
+        if (this.isDestroyed) return;
+        this.isDestroyed = true;
+
+        createExplosion(this.mesh.position, wasIntercepted);
+
+        if (wasIntercepted) {
+          audio.playExplosion();
+          logTactical(`💥 目標已成功擊毀！熱燒蝕貫穿引爆 (Range ${(this.mesh.position.length()).toFixed(0)}m)`);
+
+          if (currentSubmode === 'killchain' && currentKillchainStep === 4) {
+            confetti({
+              particleCount: 70,
+              spread: 60,
+              origin: { y: 0.8 }
             });
+            setStepState(4, 'completed');
+            document.getElementById('step-action-text').innerText = "攔截圓滿完成！點擊重新演練";
+            document.getElementById('step-action-icon').innerText = "🔄";
+          }
+        } else {
+          logTactical(`⚠️ 警告：威脅穿透空域！`);
         }
 
-        // 切換章節
-        function switchChapter(chId) {
-            currentChapter = chId;
-            renderTabs();
+        scene.remove(this.mesh);
+        const idx = activeTargets.indexOf(this);
+        if (idx !== -1) activeTargets.splice(idx, 1);
 
-            const sec06 = document.getElementById('content-ch06');
-            const sec07 = document.getElementById('content-ch07');
-            const secPh = document.getElementById('content-placeholder');
+        if (currentTarget === this) {
+          currentTarget = null;
+        }
+      }
+    }
 
-            sec06.classList.add('hidden');
-            sec07.classList.add('hidden');
-            secPh.classList.add('hidden');
+    function spawnThreat(type) {
+      audio.init();
+      audio.playRadarPing();
 
-            if (chId === 6) {
-                sec06.classList.remove('hidden');
-            } else if (chId === 7) {
-                sec07.classList.remove('hidden');
-            } else {
-                const chInfo = chaptersData.find(c => c.id === chId);
-                document.getElementById('ph-badge').textContent = chInfo.code;
-                document.getElementById('ph-part').textContent = chInfo.part;
-                document.getElementById('ph-title').textContent = `${chInfo.code}｜${chInfo.title}`;
-                document.getElementById('ph-summary').textContent = chInfo.summary;
-                secPh.classList.remove('hidden');
-            }
+      if (type === 'swarm') {
+        for (let i = -1; i <= 1; i++) {
+          const offset = i * 20;
+          const start = new THREE.Vector3(-140 + offset, 45 + (i * 5), -200 - Math.abs(offset));
+          const vel = new THREE.Vector3().subVectors(new THREE.Vector3(0, 2, 0), start).normalize().multiplyScalar(1.2);
+          const t = new ThreatTarget('drone', start, vel);
+          activeTargets.push(t);
+        }
+        currentTarget = activeTargets[0];
+        logTactical(`⚠️ 雷達發現【蜂群攻擊 (Swarm 3架)】！分配優先打擊序列...`);
+        return;
+      }
 
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+      let start, vel, t;
+      const angle = (Math.random() - 0.5) * 1.2;
+      const distance = 220;
+
+      if (type === 'drone') {
+        start = new THREE.Vector3(Math.sin(angle) * distance, 40 + Math.random() * 20, -Math.cos(angle) * distance);
+        vel = new THREE.Vector3().subVectors(new THREE.Vector3(0, 2, 0), start).normalize().multiplyScalar(1.1);
+        t = new ThreatTarget('drone', start, vel);
+        logTactical(`🚨 雷達截獲低空慢速目標：【自殺無人機】 航向 185°，高度 45m`);
+      } else if (type === 'rocket') {
+        start = new THREE.Vector3(Math.sin(angle) * (distance + 40), 90, -Math.cos(angle) * (distance + 40));
+        vel = new THREE.Vector3().subVectors(new THREE.Vector3(0, 1, 0), start).normalize().multiplyScalar(2.6);
+        t = new ThreatTarget('rocket', start, vel);
+        logTactical(`🚨 雷達截獲高空高速拋物線目標：【122mm 砲兵火箭彈】 速度 Mach 2.2`);
+      } else {
+        start = new THREE.Vector3(Math.sin(angle) * (distance - 40), 75, -Math.cos(angle) * (distance - 40));
+        vel = new THREE.Vector3().subVectors(new THREE.Vector3(0, 1, 0), start).normalize().multiplyScalar(1.6);
+        t = new ThreatTarget('mortar', start, vel);
+        logTactical(`🚨 雷達截獲高曲率彈道：【120mm 重型迫擊砲彈】`);
+      }
+
+      activeTargets.push(t);
+      currentTarget = t;
+    }
+
+    function createExplosion(pos, isSuccessfulIntercept) {
+      const pCount = 50;
+      const geo = new THREE.BufferGeometry();
+      const positions = new Float32Array(pCount * 3);
+      const velocities = [];
+
+      for (let i = 0; i < pCount; i++) {
+        positions[i * 3] = pos.x;
+        positions[i * 3 + 1] = pos.y;
+        positions[i * 3 + 2] = pos.z;
+
+        const theta = Math.random() * Math.PI * 2;
+        const phi = (Math.random() - 0.5) * Math.PI;
+        const speed = 15 + Math.random() * 35;
+
+        velocities.push(new THREE.Vector3(
+          Math.cos(theta) * Math.cos(phi) * speed,
+          Math.sin(phi) * speed + 5,
+          Math.sin(theta) * Math.cos(phi) * speed
+        ));
+      }
+
+      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      const mat = new THREE.PointsMaterial({
+        color: isSuccessfulIntercept ? 0xff5500 : 0x888888,
+        size: 3.2,
+        transparent: true,
+        opacity: 1.0,
+        blending: THREE.AdditiveBlending
+      });
+
+      const pSystem = new THREE.Points(geo, mat);
+      scene.add(pSystem);
+
+      explosionParticles.push({
+        system: pSystem,
+        velocities: velocities,
+        life: 1.2
+      });
+    }
+
+    function updateExplosions(delta) {
+      for (let i = explosionParticles.length - 1; i >= 0; i--) {
+        const ep = explosionParticles[i];
+        ep.life -= delta;
+
+        const positions = ep.system.geometry.attributes.position.array;
+        for (let j = 0; j < ep.velocities.length; j++) {
+          positions[j * 3] += ep.velocities[j].x * delta;
+          positions[j * 3 + 1] += ep.velocities[j].y * delta;
+          positions[j * 3 + 2] += ep.velocities[j].z * delta;
+          ep.velocities[j].y -= 9.8 * delta;
         }
 
-        // Ch06 Step 1 問題卡片切換高亮
-        function toggleCh06Q1(which) {
-            const boxA = document.getElementById('btn-ch06-q1a');
-            const boxB = document.getElementById('btn-ch06-q1b');
-            if (which === 'a') {
-                boxA.classList.add('ring-2', 'ring-[#0f2942]');
-                boxB.classList.remove('ring-2', 'ring-[#0f2942]');
-            } else {
-                boxB.classList.add('ring-2', 'ring-[#0f2942]');
-                boxA.classList.remove('ring-2', 'ring-[#0f2942]');
-            }
+        ep.system.geometry.attributes.position.needsUpdate = true;
+        ep.system.material.opacity = ep.life / 1.2;
+
+        if (ep.life <= 0) {
+          scene.remove(ep.system);
+          explosionParticles.splice(i, 1);
+        }
+      }
+    }
+
+    function updateTurretTracking(delta) {
+      if (radarDome) {
+        radarDome.rotation.y += delta * 2.8;
+      }
+
+      let aimVector = null;
+      if (currentTarget && !currentTarget.isDestroyed) {
+        aimVector = currentTarget.mesh.position.clone();
+      } else if (currentSubmode === 'sandbox') {
+        aimVector = aimSkyTarget.clone();
+      } else {
+        aimVector = new THREE.Vector3(0, 30, 100);
+      }
+
+      const turretWorldPos = new THREE.Vector3();
+      turretGimbal.getWorldPosition(turretWorldPos);
+      const toTarget = new THREE.Vector3().subVectors(aimVector, turretWorldPos);
+
+      const targetAzimuth = Math.atan2(toTarget.x, toTarget.z);
+      const horizontalDist = Math.hypot(toTarget.x, toTarget.z);
+      const targetElevation = Math.atan2(toTarget.y, horizontalDist);
+
+      const slewRate = 12.0;
+      turretBase.rotation.y += (targetAzimuth - turretBase.rotation.y) * Math.min(1.0, delta * slewRate);
+      turretGimbal.rotation.x += (-targetElevation - turretGimbal.rotation.x) * Math.min(1.0, delta * slewRate);
+
+      if (isLaserFiring) {
+        const aperturePos = new THREE.Vector3();
+        turretAperture.getWorldPosition(aperturePos);
+
+        let hitPoint = aimVector;
+        if (!currentTarget || currentTarget.isDestroyed) {
+          const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(turretGimbal.getWorldQuaternion(new THREE.Quaternion()));
+          hitPoint = aperturePos.clone().addScaledVector(forward, 250);
         }
 
-        // Ch06 Step 2 四宮格矩陣互動
-        const matrixTexts = {
-            1: `<span class="font-bold text-[#0f2942]">【第四格：接受比較（作者暫採的方法論起點）】</span>
-                這裡的「存在」指具有可界定的特性或能力。安德勒決定<strong>暫時保留「人類智慧」與「人工智慧」兩個概念</strong>，把它們放在一起嚴格比較，藉由比較過程來檢驗兩者的真實界線。`,
-            2: `<span class="font-bold text-[#0f2942]">【保留人類智慧、否認 AI】</span>
-                這種立場認為只有人類擁有真正的智慧，而所謂「人工智慧」只是商業行銷名詞或進階統計工具，根本不配稱為智慧，因此兩者沒什麼好比較的。`,
-            3: `<span class="font-bold text-[#0f2942]">【否認人類智慧、保留 AI】</span>
-                這種極端科學主義立場認為，人類自以為的「智慧」其實只是一堆神經反射與演化習慣的大雜燴名詞；反而是人工智慧工程精確定義了什麼是計算與優化。`,
-            4: `<span class="font-bold text-[#0f2942]">【雙重否認】</span>
-                懷疑論立場：認為不論是「人類智慧」還是「人工智慧」，都像「運氣」一樣只是空泛的日常詞彙，背後都沒有單一、可嚴格界定的科學實體。`
+        updateLaserBeam(aperturePos, hitPoint);
+
+        if (currentTarget && !currentTarget.isDestroyed) {
+          currentTarget.applyLaserEnergy(laserPowerKW, delta);
+        }
+      } else {
+        updateLaserBeam(null, null);
+      }
+    }
+
+    /* =========================================================================
+       SUBMODE SWITCHER (Guided Killchain vs Sandbox)
+       ========================================================================= */
+    function setSubmode(submode) {
+      currentSubmode = submode;
+      document.getElementById('subtab-killchain').classList.toggle('active', submode === 'killchain');
+      document.getElementById('subtab-sandbox').classList.toggle('active', submode === 'sandbox');
+
+      document.getElementById('subview-killchain').style.display = submode === 'killchain' ? 'block' : 'none';
+      document.getElementById('subview-sandbox').style.display = submode === 'sandbox' ? 'flex' : 'none';
+      crosshairEl.style.display = submode === 'sandbox' ? 'block' : 'none';
+
+      if (submode === 'killchain') {
+        jumpToStep(1);
+      } else {
+        logTactical(`🕹️ 自由沙盒操作：滑鼠可在天空自由瞄準，按住發射按鈕發動雷射！`);
+      }
+    }
+
+    function setStepState(stepNum, state) {
+      const stepEl = document.getElementById(`step-${stepNum}`);
+      if (state === 'active') stepEl.className = 'step-item active';
+      else if (state === 'completed') stepEl.className = 'step-item completed';
+      else stepEl.className = 'step-item';
+    }
+
+    function jumpToStep(step) {
+      currentKillchainStep = step;
+      document.getElementById('killchain-progress').innerText = `步驟 ${step}/4`;
+
+      for (let s = 1; s <= 4; s++) {
+        if (s < step) setStepState(s, 'completed');
+        else if (s === step) setStepState(s, 'active');
+        else setStepState(s, 'idle');
+      }
+
+      const btnText = document.getElementById('step-action-text');
+      const btnIcon = document.getElementById('step-action-icon');
+      const btn = document.getElementById('btn-next-step');
+
+      stopFiring();
+
+      if (step === 1) {
+        btnText.innerText = "產生來襲威脅並雷達捕獲";
+        btnIcon.innerText = "📡";
+        btn.onclick = () => {
+          spawnThreat('drone');
+          jumpToStep(2);
         };
-
-        function selectMatrix(index) {
-            document.getElementById('matrix-explanation').innerHTML = matrixTexts[index];
-            for (let i = 1; i <= 4; i++) {
-                const btn = document.getElementById(`matrix-btn-${i}`);
-                if (i === index) {
-                    btn.className = "w-full h-full py-3 px-2 rounded-lg bg-amber-300 text-slate-900 font-black shadow-sm transition ring-2 ring-amber-500";
-                } else {
-                    btn.className = "w-full h-full py-3 px-2 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold transition";
-                }
-            }
-        }
-
-        // Ch06 Step 4 展開五個候選要素詳情
-        function toggleCandidate(id) {
-            const detail = document.getElementById(`cand-detail-${id}`);
-            detail.classList.toggle('hidden');
-        }
-
-        // Ch07 Step 3 Umwelt 視角切換
-        const umweltData = {
-            monkey: {
-                title: '🐒 對猴子而言：樹是「可攀爬的立體通道與避難所」',
-                desc: '因為猴子擁有抓握的四肢與靈活軀體（身體構造），且需要躲避地面掠食者（生存需求），大樹在牠的周遭世界（Umwelt）中呈現出「往上爬」的行動可能性（Affordance）。'
-            },
-            boar: {
-                title: '🐗 對野豬而言：樹下是「尋找橡果食物與磨蹭樹皮的地方」',
-                desc: '野豬沒有攀爬樹枝的身體構造，同一棵樹對牠而言完全沒有「爬上去」的意義，而是地面掉落的橡果（營養需求）與粗糙樹幹的摩擦點。身體與生命需求決定了環境中什麼事物具有重要性。'
-            },
-            ai: {
-                title: '🤖 對 AI 而言：樹只是「像素矩陣或語料庫裡的機率標籤」',
-                desc: 'AI 沒有血肉之軀，不會飢餓、不會從樹上摔死。它能高精準度識別照片裡有「樹 (Tree: 99.4%)」，但這棵樹與它的生存毫無利害關係——它沒有自己的「周遭世界 (Umwelt)」。'
-            }
+      } else if (step === 2) {
+        btnText.innerText = "光電鎖定與自適應補償";
+        btnIcon.innerText = "🎯";
+        btn.onclick = () => {
+          audio.playLockOnTone();
+          logTactical(`🎯 光電伺服(EOTS)鎖定目標！自適應光學波前反畸變運算完成。`);
+          jumpToStep(3);
         };
-
-        function switchUmwelt(type) {
-            const display = document.getElementById('umwelt-display');
-            const info = umweltData[type];
-            display.innerHTML = `
-                <p class="font-bold text-teal-800 mb-1">${info.title}</p>
-                <p>${info.desc}</p>
-            `;
-
-            ['monkey', 'boar', 'ai'].forEach(k => {
-                const btn = document.getElementById(`umwelt-${k}`);
-                if (k === type) {
-                    btn.className = "px-3 py-1 rounded-lg text-xs font-bold bg-teal-700 text-white transition";
-                } else {
-                    btn.className = "px-3 py-1 rounded-lg text-xs font-bold bg-slate-200 text-slate-700 hover:bg-slate-300 transition";
-                }
-            });
-        }
-
-        // Modal 開關控制
-        function toggleModal(modalId) {
-            const modal = document.getElementById(modalId);
-            modal.classList.toggle('hidden');
-        }
-
-        // 初始化頁面
-        window.onload = function() {
-            renderTabs();
+      } else if (step === 3) {
+        btnText.innerText = "發射 100kW 高能雷射照射";
+        btnIcon.innerText = "⚡";
+        btn.onclick = () => {
+          startFiring();
+          logTactical(`⚡ 雷射全力輸出中！高光子密度聚集，表面熱能急劇飆升...`);
+          setTimeout(() => {
+            jumpToStep(4);
+          }, 1800);
         };
-    </script>
+      } else if (step === 4) {
+        btnText.innerText = "目標引爆擊毀 (持續照射中)";
+        btnIcon.innerText = "💥";
+        btn.onclick = () => {
+          if (currentTarget) currentTarget.destroy(true);
+        };
+      }
+    }
+
+    function executeCurrentStep() {
+      // Handled directly inside jumpToStep mappings
+    }
+
+    function startFiring() {
+      audio.init();
+      isLaserFiring = true;
+      audio.startLaserHum();
+      document.getElementById('btn-fire-laser').classList.add('firing');
+      document.getElementById('system-status-dot').style.background = '#ff0055';
+      document.getElementById('system-status-dot').style.boxShadow = '0 0 12px #ff0055';
+    }
+
+    function stopFiring() {
+      isLaserFiring = false;
+      audio.stopLaserHum();
+      document.getElementById('btn-fire-laser').classList.remove('firing');
+      document.getElementById('system-status-dot').style.background = '#00ff88';
+      document.getElementById('system-status-dot').style.boxShadow = '0 0 8px #00ff88';
+    }
+
+    function updatePower(val) {
+      laserPowerKW = parseInt(val);
+      document.getElementById('label-power').innerText = `${laserPowerKW} kW`;
+      logTactical(`調諧雷射輸出功率至 ${laserPowerKW} kW`);
+    }
+
+    function changeWeather(val) {
+      currentWeather = val;
+      const weatherLabel = document.getElementById('label-weather');
+      if (val === 'clear') {
+        weatherLabel.innerText = "晴朗無雲 (大氣穿透率 98%)";
+        scene.fog.density = 0.0025;
+      } else if (val === 'dust') {
+        weatherLabel.innerText = "沙漠沙塵暴 (嚴重散射衰減)";
+        scene.fog.density = 0.012;
+        logTactical(`⚠️ 警告：沙塵暴粒子引起雷射強烈散射，需依賴自適應光學加強聚焦`);
+      } else {
+        weatherLabel.innerText = "低空濃雲霧 (水氣吸收衰減)";
+        scene.fog.density = 0.009;
+        logTactical(`⚠️ 警告：水氣吸收波長能量，打擊時間將延長`);
+      }
+    }
+
+    function toggleAdaptiveOptics(checked) {
+      adaptiveOpticsEnabled = checked;
+      logTactical(`自適應光學波前校準: ${checked ? '【已開啓 ON】' : '【已關閉 OFF - 光斑將抖動擴散】'}`);
+    }
+
+    /* =========================================================================
+       3D COMPONENT FOCUSING
+       ========================================================================= */
+    const comp3DFocusData = {
+      power: {
+        title: "⚡ 1. 能源動力與液冷散熱機組",
+        camPos: new THREE.Vector3(-25, 12, 10),
+        target: new THREE.Vector3(-14, 3, -4)
+      },
+      radar: {
+        title: "📡 2. AESA 搜索雷達與指控中心",
+        camPos: new THREE.Vector3(26, 15, 6),
+        target: new THREE.Vector3(13, 5, -6)
+      },
+      combiner: {
+        title: "🔬 3. 光纖雷射合成器與波導矩陣",
+        camPos: new THREE.Vector3(-4, 10, 8),
+        target: new THREE.Vector3(-2, 3, -6)
+      },
+      turret: {
+        title: "🎯 4. 光學發射轉塔與自適應鏡面",
+        camPos: new THREE.Vector3(0, 16, 20),
+        target: new THREE.Vector3(0, 5, 3)
+      }
+    };
+
+    function focusComponent(compKey) {
+      if (compKey === 'reset') {
+        smoothMoveCamera(new THREE.Vector3(45, 30, 75), new THREE.Vector3(0, 10, 0));
+        hideAnnotation();
+        return;
+      }
+
+      const info = comp3DFocusData[compKey];
+      if (info) {
+        smoothMoveCamera(info.camPos, info.target);
+        showAnnotation(info.title, info.target);
+      }
+    }
+
+    function smoothMoveCamera(newPos, newTarget) {
+      const startPos = camera.position.clone();
+      const startTarget = controls.target.clone();
+      let progress = 0;
+
+      function stepCam() {
+        progress += 0.04;
+        camera.position.lerpVectors(startPos, newPos, progress);
+        controls.target.lerpVectors(startTarget, newTarget, progress);
+        controls.update();
+        if (progress < 1.0) requestAnimationFrame(stepCam);
+      }
+      stepCam();
+    }
+
+    function showAnnotation(text, worldPos) {
+      annotationEl.innerText = text;
+      annotationEl.style.opacity = '1';
+      annotationEl.dataset.pos = JSON.stringify(worldPos);
+    }
+
+    function hideAnnotation() {
+      annotationEl.style.opacity = '0';
+    }
+
+    function updateAnnotationPos() {
+      if (annotationEl.style.opacity === '1' && annotationEl.dataset.pos) {
+        const pos = JSON.parse(annotationEl.dataset.pos);
+        const vec = new THREE.Vector3(pos.x, pos.y + 3.5, pos.z);
+        vec.project(camera);
+        const x = (vec.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(vec.y * 0.5) + 0.5) * window.innerHeight;
+        annotationEl.style.left = `${x}px`;
+        annotationEl.style.top = `${y}px`;
+      }
+    }
+
+    function logTactical(msg) {
+      hudLogEl.innerText = msg;
+    }
+
+    function setupEvents() {
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+
+      window.addEventListener('mousemove', (e) => {
+        mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+        crosshairEl.style.left = `${e.clientX}px`;
+        crosshairEl.style.top = `${e.clientY}px`;
+
+        if (currentMainView === 'sim3d' && currentSubmode === 'sandbox') {
+          raycaster.setFromCamera(mouse, camera);
+
+          let hoveredTarget = null;
+          for (let t of activeTargets) {
+            const dist = raycaster.ray.distanceToPoint(t.mesh.position);
+            if (dist < 8) {
+              hoveredTarget = t;
+              break;
+            }
+          }
+
+          if (hoveredTarget) {
+            currentTarget = hoveredTarget;
+            crosshairEl.classList.add('locked');
+          } else {
+            crosshairEl.classList.remove('locked');
+            const planeZ = new THREE.Plane(new THREE.Vector3(0, 0, 1), 60);
+            raycaster.ray.intersectPlane(planeZ, aimSkyTarget);
+          }
+        }
+      });
+
+      window.addEventListener('keydown', (e) => {
+        if (e.code === 'Space' && !e.repeat && currentMainView === 'sim3d') {
+          startFiring();
+        }
+      });
+      window.addEventListener('keyup', (e) => {
+        if (e.code === 'Space') {
+          stopFiring();
+        }
+      });
+    }
+
+    /* =========================================================================
+       MAIN RENDER LOOP
+       ========================================================================= */
+    let frameCount = 0;
+    let lastFpsTime = performance.now();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock.getDelta();
+      controls.update();
+
+      for (let i = activeTargets.length - 1; i >= 0; i--) {
+        activeTargets[i].update(delta);
+      }
+
+      updateTurretTracking(delta);
+      updateExplosions(delta);
+      updateTelemetryHUD();
+      updateAnnotationPos();
+
+      renderer.render(scene, camera);
+
+      frameCount++;
+      const now = performance.now();
+      if (now - lastFpsTime >= 1000) {
+        document.getElementById('fps-display').innerText = frameCount;
+        frameCount = 0;
+        lastFpsTime = now;
+      }
+    }
+
+    function updateTelemetryHUD() {
+      if (currentTarget && !currentTarget.isDestroyed) {
+        targetStatusText.innerText = "TRACKING & LOCKED";
+        targetStatusText.style.color = "#00ff88";
+
+        const temp = Math.round(currentTarget.temperature);
+        targetTempVal.innerText = `${temp} °C`;
+
+        const ablation = Math.min(100, Math.round(((currentTarget.temperature - 32) / 800) * 100));
+        targetAblationVal.innerText = `${ablation} %`;
+        pipHeatFill.style.width = `${ablation}%`;
+      } else {
+        targetStatusText.innerText = "WAITING THREAT";
+        targetStatusText.style.color = "var(--text-muted)";
+        targetTempVal.innerText = "32 °C";
+        targetAblationVal.innerText = "0 %";
+        pipHeatFill.style.width = "0%";
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      init3D();
+      renderGalleryPhoto(0);
+      switchMainView('photos'); // Start user in the Real Photo Showcase
+    });
+  </script>
 </body>
 </html>
