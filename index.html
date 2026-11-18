@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>CorNeat KPro 人工角膜導覽</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a museum-style guided route. A left rail lists the 9 stops; one stop fills the stage at a time; a guide's note opens every stop. */
+:root{
+  --bg:#F1F4F6;
+  --surface:#FFFFFF;
+  --ink:#10222F;
+  --muted:#5A6B77;
+  --line:#D5DDE3;
+  --accent:#16557F;
+  --accent-soft:#E2EDF5;
+  --warn:#A65F00;
+  --warn-soft:#FCF0DC;
+  --skirt:#7A5AA6;
+  --cornea:#5FA8C9;
+  --conj:#D98B8B;
+  --sclera:#FAFAF7;
+  --eye-in:#EAF2F6;
+  --iris:#3E6B73;
+  --font-display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --font-body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0D1820;--surface:#14232E;--ink:#E4ECF1;--muted:#93A6B3;--line:#28404F;
+    --accent:#6FB2DE;--accent-soft:#193447;--warn:#F0A94A;--warn-soft:#3A2A12;
+    --skirt:#B293DD;--cornea:#6CB8D8;--conj:#E39C9C;--sclera:#D9DEE0;--eye-in:#1A2E3A;--iris:#7FB0B8;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0D1820;--surface:#14232E;--ink:#E4ECF1;--muted:#93A6B3;--line:#28404F;
+  --accent:#6FB2DE;--accent-soft:#193447;--warn:#F0A94A;--warn-soft:#3A2A12;
+  --skirt:#B293DD;--cornea:#6CB8D8;--conj:#E39C9C;--sclera:#D9DEE0;--eye-in:#1A2E3A;--iris:#7FB0B8;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.75;-webkit-font-smoothing:antialiased}
+a{color:var(--accent)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+h1,h2,h3{font-family:var(--font-display);text-wrap:balance;margin:0;line-height:1.3}
+p{margin:0}
+.mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
+
+/* top bar */
+.topbar{position:sticky;top:0;z-index:20;background:var(--surface);border-bottom:1px solid var(--line);padding:10px 20px;display:flex;align-items:center;gap:16px}
+.brand{font-weight:700;font-size:15px;white-space:nowrap}
+.brand span{color:var(--muted);font-weight:400;margin-left:6px}
+.progress{flex:1;display:flex;gap:4px;min-width:0}
+.progress button{flex:1;height:8px;border:0;border-radius:4px;background:var(--line);cursor:pointer;padding:0}
+.progress button.done{background:var(--accent);opacity:.45}
+.progress button.on{background:var(--accent)}
+.counter{font-family:var(--font-mono);font-size:13px;color:var(--muted);white-space:nowrap}
+
+/* shell */
+.shell{display:grid;grid-template-columns:250px minmax(0,1fr);gap:0;max-width:1240px;margin:0 auto}
+.rail{position:sticky;top:49px;align-self:start;padding:28px 12px 28px 20px;height:calc(100vh - 49px);overflow:auto}
+.rail h4{margin:0 0 12px 10px;font-size:12px;letter-spacing:.08em;color:var(--muted);font-weight:500}
+.rail ol{list-style:none;margin:0;padding:0;display:grid;gap:2px;position:relative}
+.rail li button{display:grid;grid-template-columns:28px 1fr;align-items:center;gap:8px;width:100%;text-align:left;background:none;border:0;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:14.5px;line-height:1.4;color:var(--muted)}
+.rail li button .n{width:26px;height:26px;border-radius:50%;border:1.5px solid var(--line);display:grid;place-items:center;font-family:var(--font-mono);font-size:12px;background:var(--surface)}
+.rail li button:hover{background:var(--accent-soft);color:var(--ink)}
+.rail li button.on{color:var(--ink);font-weight:700;background:var(--accent-soft)}
+.rail li button.on .n{background:var(--accent);border-color:var(--accent);color:var(--surface)}
+.rail li button.done .n{border-color:var(--accent);color:var(--accent)}
+.rail li button.alert .n{border-color:var(--warn);color:var(--warn)}
+.rail li button.alert.on .n{background:var(--warn);color:var(--surface)}
+
+.stage{padding:28px 28px 40px;min-width:0}
+.stop{display:none}
+.stop.on{display:block;animation:fade .35s ease}
+@keyframes fade{from{opacity:.4;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion: reduce){.stop.on{animation:none}}
+.eyebrow{font-family:var(--font-mono);font-size:13px;color:var(--accent);letter-spacing:.04em;margin-bottom:8px}
+.stop h2{font-size:clamp(26px,3.2vw,36px);margin-bottom:18px}
+.guide{display:grid;grid-template-columns:40px 1fr;gap:14px;background:var(--surface);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px;margin-bottom:24px;max-width:780px}
+.guide .badge{width:40px;height:40px;border-radius:50%;background:var(--accent-soft);display:grid;place-items:center}
+.guide .who{font-size:12.5px;color:var(--muted);margin-bottom:2px}
+.guide.warn{border-left-color:var(--warn)}
+.guide.warn .badge{background:var(--warn-soft)}
+.prose{max-width:68ch;display:grid;gap:14px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:20px;align-items:start}
+.note{font-size:13.5px;color:var(--muted)}
+.src{font-size:13px;color:var(--muted)}
+.src a{color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:13px;padding:4px 10px;border-radius:999px;border:1px solid var(--line);background:var(--surface);white-space:nowrap}
+.chip.warn{border-color:var(--warn);color:var(--warn);background:var(--warn-soft)}
+.chip.info{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:32px;padding-top:20px;border-top:1px solid var(--line)}
+.btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line);background:var(--surface);padding:10px 18px;border-radius:999px;cursor:pointer;font-size:15px}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--surface);font-weight:700}
+.btn[disabled]{opacity:.35;cursor:default}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:999px;padding:3px;background:var(--surface);gap:2px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:999px;cursor:pointer;font-size:14px}
+.seg button.on{background:var(--accent);color:var(--surface)}
+
+/* stop 1 */
+.hero{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:28px;align-items:center;margin-bottom:28px}
+.hero h1{font-size:clamp(32px,4.6vw,52px);margin-bottom:14px}
+.hero .lead{font-size:18px;color:var(--muted);max-width:40ch;margin-bottom:18px}
+.route{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;margin-top:8px}
+.route button{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;cursor:pointer;display:grid;gap:2px}
+.route button:hover{border-color:var(--accent)}
+.route .rn{font-family:var(--font-mono);font-size:12px;color:var(--accent)}
+.route .alert .rn{color:var(--warn)}
+.route .rt{font-weight:700;font-size:15px}
+.route .rd{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* stop 2 */
+.window{border-radius:12px;overflow:hidden;border:1px solid var(--line);position:relative;background:#cfe6f2}
+.window svg{display:block;width:100%;height:auto}
+.window .fog{position:absolute;inset:0;background:#fff;pointer-events:none}
+.rangewrap{display:grid;gap:6px;margin-top:14px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.rangelabels{display:flex;justify-content:space-between;font-size:12.5px;color:var(--muted)}
+.stat{display:grid;gap:4px;padding:14px 0;border-bottom:1px solid var(--line)}
+.stat:last-child{border-bottom:0}
+.stat b{font-family:var(--font-mono);font-size:26px;font-weight:500;color:var(--accent);line-height:1.2}
+
+/* eye diagrams */
+.eyebox svg{display:block;width:100%;height:auto}
+.part{cursor:pointer}
+.part .hit{stroke:transparent;fill:none;stroke-width:26}
+.part:hover .vis, .part.sel .vis{filter:drop-shadow(0 0 4px var(--accent))}
+.lbl{font-family:var(--font-body);font-size:13px;fill:var(--ink)}
+.lbl-muted{fill:var(--muted)}
+.leader{stroke:var(--muted);stroke-width:1;fill:none}
+.info h3{font-size:20px;margin-bottom:8px}
+.info .tag{font-family:var(--font-mono);font-size:12px;color:var(--accent);margin-bottom:6px}
+.compare{width:100%;border-collapse:collapse;font-size:14.5px;margin-top:4px}
+.compare th,.compare td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+.compare th{font-weight:500;color:var(--muted);font-size:13px}
+.compare td:first-child{color:var(--muted);white-space:nowrap}
+
+/* stop 4 */
+.stagebar{display:flex;justify-content:space-between;gap:4px;margin-top:6px}
+.stagebar button{flex:1;border:0;background:none;font-size:12.5px;color:var(--muted);cursor:pointer;padding:4px 0}
+.stagebar button.on{color:var(--accent);font-weight:700}
+.legend{display:flex;flex-wrap:wrap;gap:14px;font-size:13px;color:var(--muted);margin-top:10px}
+.legend i{display:inline-block;width:14px;height:8px;border-radius:2px;margin-right:6px;vertical-align:middle}
+
+/* stop 5 */
+.steps{display:grid;gap:6px}
+.steps button{display:grid;grid-template-columns:32px 1fr;gap:10px;align-items:center;text-align:left;border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:14.5px;line-height:1.45}
+.steps button .n{width:28px;height:28px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;font-family:var(--font-mono);font-size:13px}
+.steps button.on{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.steps button.on .n{background:var(--accent);color:var(--surface)}
+.surg{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:20px;align-items:start}
+.surgview svg{width:100%;max-width:340px;display:block;margin:0 auto}
+
+/* stop 6 */
+.ladder{display:grid;gap:6px}
+.rung{display:grid;grid-template-columns:120px 1fr auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--surface);cursor:pointer;text-align:left;width:100%}
+.rung .lv{font-family:var(--font-mono);font-size:12px;color:var(--muted)}
+.rung .t{font-weight:700;font-size:15px}
+.rung .d{font-size:13.5px;color:var(--muted);line-height:1.5}
+.rung.has{border-color:var(--accent)}
+.rung.none{opacity:.7;border-style:dashed}
+.rung .st{font-size:12.5px}
+.dtable{width:100%;border-collapse:collapse;font-size:15px}
+.dtable th,.dtable td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+.dtable th{font-size:13px;color:var(--muted);font-weight:500}
+.dtable td:first-child{color:var(--muted);font-size:14px;white-space:nowrap}
+.dtable .big{font-family:var(--font-mono);font-size:20px;color:var(--accent)}
+
+/* stop 7 */
+.tl{position:relative;display:grid;gap:0;padding-left:28px}
+.tl::before{content:"";position:absolute;left:9px;top:8px;bottom:8px;width:2px;background:var(--line)}
+.tl-item{position:relative;padding:0 0 6px}
+.tl-item .dot{position:absolute;left:-28px;top:14px;width:20px;height:20px;border-radius:50%;background:var(--surface);border:3px solid var(--accent)}
+.tl-item.alert .dot{border-color:var(--warn);background:var(--warn-soft)}
+.tl-item.end .dot{border-color:var(--muted)}
+.tl-item > button{width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 16px;cursor:pointer;display:grid;grid-template-columns:110px 1fr 20px;gap:12px;align-items:center}
+.tl-item.alert > button{border-color:var(--warn)}
+.tl-item > button .when{font-family:var(--font-mono);font-size:13px;color:var(--muted)}
+.tl-item > button .what{font-weight:700;font-size:15px;line-height:1.45}
+.tl-item > button .chev{transition:transform .2s;color:var(--muted)}
+.tl-item.open > button .chev{transform:rotate(90deg)}
+.tl-detail{display:none;padding:12px 16px 8px;font-size:14.5px;color:var(--ink)}
+.tl-item.open .tl-detail{display:grid;gap:8px}
+
+/* stop 8 */
+.chain{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:stretch;margin:6px 0 18px}
+.chain button{position:relative;border:1px solid var(--warn);background:var(--surface);border-radius:10px;padding:12px;text-align:left;cursor:pointer;display:grid;gap:4px;align-content:start}
+.chain button .k{font-family:var(--font-mono);font-size:12px;color:var(--warn)}
+.chain button .t{font-weight:700;font-size:15px;line-height:1.4}
+.chain button.on{background:var(--warn-soft);box-shadow:0 0 0 1px var(--warn)}
+.chain button:not(:last-child)::after{content:"→";position:absolute;right:-14px;top:50%;transform:translateY(-50%);color:var(--warn);font-weight:700;z-index:1}
+.recall{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:14px}
+.recall > div{border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:var(--surface)}
+.recall .k{font-size:12px;color:var(--muted)}
+.recall .v{font-family:var(--font-mono);font-size:15px}
+
+/* stop 9 */
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.filters button{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 14px;cursor:pointer;font-size:14px}
+.filters button.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
+.srcgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.srccard{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:grid;gap:6px;align-content:start}
+.srccard .cat{font-family:var(--font-mono);font-size:11.5px;color:var(--accent)}
+.srccard.c-reg .cat{color:var(--warn)}
+.srccard h3{font-family:var(--font-body);font-size:15px;font-weight:700;line-height:1.45}
+.srccard p{font-size:13.5px;color:var(--muted);line-height:1.6}
+.srccard a{font-size:13px;word-break:break-all}
+.disclaimer{margin-top:28px;font-size:13px;color:var(--muted);border-top:1px solid var(--line);padding-top:14px;max-width:80ch}
+
+@media (max-width: 900px){
+  .shell{grid-template-columns:1fr}
+  .rail{display:none}
+  .stage{padding:20px 16px 32px}
+  .hero,.grid2,.surg{grid-template-columns:1fr}
+  .chain{grid-template-columns:1fr 1fr}
+  .chain button:not(:last-child)::after{display:none}
+  .rung{grid-template-columns:1fr;gap:4px}
+  .tl-item > button{grid-template-columns:1fr 20px}
+  .tl-item > button .when{grid-column:1/-1}
+  .brand span{display:none}
+}
+@media (max-width: 420px){ .topbar{padding:10px 16px;gap:10px} .chain{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">CorNeat KPro<span>人工角膜導覽</span></div>
+  <div class="progress" id="progress" aria-label="導覽進度"></div>
+  <div class="counter" id="counter">第 1 / 9 站</div>
+</header>
+
+<div class="shell">
+  <nav class="rail" aria-label="導覽路線">
+    <h4>導覽路線</h4>
+    <ol id="rail"></ol>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- STOP 1 -->
+  <section class="stop" data-stop="1" data-title="開場" data-desc="這是什麼？目前狀態如何？">
+    <div class="hero">
+      <div>
+        <div class="eyebrow">第 1 站｜開場</div>
+        <h1>一片不需要捐贈者的人工角膜</h1>
+        <p class="lead">CorNeat KPro 是以色列 CorNeat Vision 公司研發的人工角膜，設計目標是讓角膜失明的病人，不必等待捐贈角膜也能重新看見。</p>
+        <div class="chips" style="margin-bottom:20px">
+          <span class="chip info">研究性醫療器材</span>
+          <span class="chip info">未核准商業銷售</span>
+          <span class="chip warn">2026 年 6 月加拿大召回（Type II）</span>
+        </div>
+        <button class="btn primary" data-go="2">開始導覽　→</button>
+        <p class="note" style="margin-top:10px">共 9 站，約 10 分鐘。可用鍵盤左右鍵換站。</p>
+      </div>
+      <div class="card eyebox" id="heroEye" aria-hidden="true"></div>
+    </div>
+    <div class="guide">
+      <div class="badge"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="8" fill="none" stroke="currentColor" stroke-width="1.6" style="color:var(--accent)"/><circle cx="10" cy="10" r="3" fill="var(--accent)"/></svg></div>
+      <div>
+        <div class="who">導覽員</div>
+        <p>這趟導覽會先看它想解決的問題和運作原理，再看目前有多少證據，最後看臨床上遇到的安全問題。它的設計很有創意，但目前還在研究階段，而且已經出現值得重視的安全疑慮。兩件事我們都會看清楚。</p>
+      </div>
+    </div>
+    <h3 style="font-size:18px;margin:6px 0 4px">導覽路線</h3>
+    <div class="route" id="route"></div>
+  </section>
+
+  <!-- STOP 2 -->
+  <section class="stop" data-stop="2" data-title="它想解決的問題" data-desc="角膜混濁與捐贈角膜的限制">
+    <div class="eyebrow">第 2 站｜它想解決的問題</div>
+    <h2>角膜是眼睛的「窗戶」</h2>
+    <div class="guide">
+      <div class="badge"><svg width="20" height="20" viewBox="0 0 20 20"><rect x="3" y="3" width="14" height="14" rx="2" fill="none" stroke="var(--accent)" stroke-width="1.6"/><line x1="10" y1="3" x2="10" y2="17" stroke="var(--accent)" stroke-width="1.6"/><line x1="3" y1="10" x2="17" y2="10" stroke="var(--accent)" stroke-width="1.6"/></svg></div>
+      <div>
+        <div class="who">導覽員</div>
+        <p>角膜位在眼球最前面，透明、沒有血管，光線要先穿過它才能進到眼睛裡。拖動下面的滑桿，看看角膜變混濁時，世界會變成什麼樣子。</p>
+      </div>
+    </div>
+    <div class="grid2">
+      <div>
+        <div class="window" id="window">
+          <svg viewBox="0 0 640 360" role="img" aria-label="窗外風景示意圖">
+            <defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#8EC5E6"/><stop offset="1" stop-color="#DCEFF7"/></linearGradient></defs>
+            <rect width="640" height="360" fill="url(#sky)"/>
+            <circle cx="520" cy="80" r="34" fill="#FFD86B"/>
+            <path d="M0 250 L120 150 L210 220 L320 120 L440 230 L520 170 L640 240 L640 360 L0 360Z" fill="#7FA6A0"/>
+            <path d="M0 290 Q160 250 320 280 T640 270 L640 360 L0 360Z" fill="#9CC48A"/>
+            <rect x="380" y="232" width="90" height="62" fill="#F3E6D0"/><path d="M370 236 L425 196 L480 236Z" fill="#B5584A"/><rect x="415" y="258" width="20" height="36" fill="#6B4A3A"/>
+            <rect x="140" y="220" width="10" height="70" fill="#6B4A3A"/><circle cx="145" cy="205" r="34" fill="#4F8A5B"/>
+            <text x="40" y="60" font-size="34" font-family="Noto Sans TC, sans-serif" font-weight="700" fill="#10222F">E 視力表</text>
+            <text x="40" y="100" font-size="20" font-family="Noto Sans TC, sans-serif" fill="#10222F">遠方的字 看得清楚嗎？</text>
+          </svg>
+          <div class="fog" id="fog"></div>
+        </div>
+        <div class="rangewrap">
+          <label for="opacity" class="note">角膜混濁程度：<b id="opLabel" style="color:var(--ink)">清澈</b></label>
+          <input type="range" id="opacity" min="0" max="100" value="0">
+          <div class="rangelabels"><span>清澈</span><span>輕度混濁</span><span>只能看見手在晃動</span></div>
+        </div>
+        <p class="note" style="margin-top:8px">模擬示意，實際症狀因人而異。「只能看見手在晃動」就是第 6 站首例病人術前的視力程度。</p>
+      </div>
+      <div class="card">
+        <h3 style="font-size:18px;margin-bottom:8px">傳統做法：角膜移植</h3>
+        <p style="margin-bottom:10px">把捐贈者的透明角膜移植到病人眼睛上。這需要有人捐贈，而且有些病人移植後一再失敗（排斥或再次混濁），選擇就越來越少。</p>
+        <div class="stat"><b>18.5 萬</b><span class="note">每年使用捐贈組織治療的病例數，遠少於需要治療的人數（CorNeat 參與的歐盟計畫報告）</span></div>
+        <div class="stat"><b>1,000–2,000</b><span class="note">全球每年人工角膜的植入數量。人工角膜目前多被當作「最後手段」（首例人體論文引言）</span></div>
+        <p class="src" style="margin-top:8px">來源：<a href="https://cordis.europa.eu/project/id/190138640/reporting" target="_blank" rel="noopener">CORDIS RESEE 計畫報告</a>、<a href="https://doi.org/10.1038/s41433-022-02105-3" target="_blank" rel="noopener">Bahar et al., Eye 2023</a></p>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px;max-width:780px;border-left:4px solid var(--skirt)">
+      <p><b>CorNeat 的想法：</b>不用捐贈角膜，改用一片人造的透明鏡片，再用一圈特殊纖維材料把它「長」進病人自己的眼球組織裡。下一站就來拆解它的構造。</p>
+    </div>
+  </section>
+
+  <!-- STOP 3 -->
+  <section class="stop" data-stop="3" data-title="裝置構造" data-desc="點擊剖面圖，認識每個部位">
+    <div class="eyebrow">第 3 站｜裝置構造</div>
+    <h2>拆開來看：鏡片 ＋ 纖維裙邊</h2>
+    <div class="guide">
+      <div class="badge"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="8" cy="8" r="5" fill="none" stroke="var(--accent)" stroke-width="1.6"/><line x1="12" y1="12" x2="17" y2="17" stroke="var(--accent)" stroke-width="2"/></svg></div>
+      <div>
+        <div class="who">導覽員</div>
+        <p>這是眼球前半部的剖面示意圖。<b>點擊圖上的各個部位</b>看說明，也可以切換成「傳統角膜移植」比較兩者的差別。</p>
+      </div>
+    </div>
+    <div style="margin-bottom:14px" class="seg" role="tablist" aria-label="切換結構">
+      <button class="on" data-mode="kpro" role="tab">CorNeat KPro</button>
+      <button data-mode="donor" role="tab">傳統角膜移植</button>
+    </div>
+    <div class="grid2">
+      <div class="card eyebox" id="eye3"></div>
+      <div class="card info" id="info3" aria-live="polite"></div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h3 style="font-size:17px;margin-bottom:6px">兩種做法對照</h3>
+      <div style="overflow-x:auto">
+      <table class="compare">
+        <thead><tr><th></th><th>傳統角膜移植</th><th>CorNeat KPro</th></tr></thead>
+        <tbody>
+          <tr><td>透明部分</td><td>捐贈者的角膜組織</td><td>PMMA 塑膠鏡片</td></tr>
+          <tr><td>怎麼固定</td><td>縫在病人剩餘的角膜上</td><td>纖維裙邊在結膜下方與眼球壁組織結合</td></tr>
+          <tr><td>需要捐贈者</td><td>需要</td><td>不需要</td></tr>
+          <tr><td>主要考量</td><td>排斥、移植片再次混濁、捐贈組織短缺</td><td>結膜能否持續覆蓋裙邊、密封與感染（見第 8 站）</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="src" style="margin-top:10px">來源：<a href="https://www.corneat.com/corneat-kpro" target="_blank" rel="noopener">CorNeat 官方產品頁</a>、<a href="https://cdn.clinicaltrials.gov/large-docs/58/NCT04485858/Prot_000.pdf" target="_blank" rel="noopener">NCT04485858 研究計畫書</a>、<a href="https://escrs.org/channels/eurotimes-articles/a-better-artificial-cornea" target="_blank" rel="noopener">EuroTimes 2021 報導</a></p>
+    </div>
+  </section>
+
+  <!-- STOP 4 -->
+  <section class="stop" data-stop="4" data-title="組織如何長進去" data-desc="拖動時間，看細胞進入纖維網">
+    <div class="eyebrow">第 4 站｜組織整合機制</div>
+    <h2>讓身體自己把裝置「縫」起來</h2>
+    <div class="guide">
+      <div class="badge"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M2 14 L8 6 L12 12 L18 4" fill="none" stroke="var(--skirt)" stroke-width="1.6"/><path d="M2 6 L8 14 L12 8 L18 16" fill="none" stroke="var(--skirt)" stroke-width="1.6"/></svg></div>
+      <div>
+        <div class="who">導覽員</div>
+        <p>我們把裙邊放大來看。它是一張充滿孔隙的纖維網，就像給細胞搭的鷹架。<b>拖動時間滑桿</b>，看植入後周圍組織怎麼一步步長進去。</p>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <div class="eyebox" id="micro"></div>
+        <div class="rangewrap">
+          <label for="time" class="note">植入後時間（示意）</label>
+          <input type="range" id="time" min="0" max="100" value="0">
+          <div class="stagebar" id="stagebar"></div>
+        </div>
+        <div class="legend">
+          <span><i style="background:var(--skirt)"></i>裙邊纖維</span>
+          <span><i style="background:#E8A23A"></i>纖維母細胞</span>
+          <span><i style="background:#E7859B"></i>膠原纖維</span>
+          <span><i style="background:#C9473F"></i>微血管</span>
+        </div>
+      </div>
+      <div class="card info" id="info4" aria-live="polite"></div>
+    </div>
+    <p class="note" style="margin-top:14px;max-width:80ch">這是原理示意圖，時間點只是為了說明順序，不代表每位病人的實際進程。圖中的現象來自兔子研究的組織切片（6 個月）與研發者在研討會上的報告。</p>
+    <p class="src">來源：<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8330828/" target="_blank" rel="noopener">Litvin et al., Cornea 2021（兔子研究）</a>、<a href="https://escrs.org/channels/eurotimes-articles/a-better-artificial-cornea" target="_blank" rel="noopener">EuroTimes 2021 報導</a>、<a href="https://www.youtube.com/watch?v=J3x1vO_QkS4" target="_blank" rel="noopener">官方原理動畫（YouTube）</a></p>
+  </section>
+
+  <!-- STOP 5 -->
+  <section class="stop" data-stop="5" data-title="植入手術流程" data-desc="六個步驟，從正面看手術">
+    <div class="eyebrow">第 5 站｜植入手術流程</div>
+    <h2>手術怎麼做？</h2>
+    <div class="guide">
+      <div class="badge"><svg width="20" height="20" viewBox="0 0 20 20"><circle cx="10" cy="10" r="7" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="3 2"/><circle cx="10" cy="10" r="2.5" fill="var(--accent)"/></svg></div>
+      <div>
+        <div class="who">導覽員</div>
+        <p>這一站換個角度，<b>從正面看眼睛</b>。依照首例人體論文描述的順序，點擊步驟看每一步做了什麼。</p>
+      </div>
+    </div>
+    <div class="surg">
+      <div class="steps" id="steps"></div>
+      <div class="card">
+        <div class="surgview" id="surgview"></div>
+        <p id="surgtext" style="margin-top:12px" aria-live="polite"></p>
+        <div style="display:flex;gap:8px;margin-top:14px">
+          <button class="btn" id="sPrev">← 上一步</button>
+          <button class="btn" id="sNext">下一步 →</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:20px;border-left:4px solid var(--warn);max-width:780px">
+      <p><b>想看真實手術？</b>CorNeat 官方有公開首例人體植入的手術影片，由以色列 Rabin Medical Center 的 Irit Bahar 教授執行。<b>影片含真實手術畫面</b>，不適合怕血的觀眾。</p>
+      <p style="margin-top:6px"><a href="https://www.corneat.com/kpro-fih-implantation" target="_blank" rel="noopener">前往官方手術影片頁面 ↗</a></p>
+    </div>
+    <p class="src" style="margin-top:12px">來源：<a href="https://doi.org/10.1038/s41433-022-02105-3" target="_blank" rel="noopener">Bahar et al., Eye 2023</a>、<a href="https://escrs.org/channels/eurotimes-articles/a-better-artificial-cornea" target="_blank" rel="noopener">EuroTimes 2021 報導</a></p>
+  </section>
+
+  <!-- STOP 6 -->
+  <section class="stop" data-stop="6" data-title="證據有多少" data-desc="動物研究與首例人體的數據">
+    <div class="eyebrow">第 6 站｜證據有多少</div>
+    <h2>一個新醫材，要爬多高的證據階梯？</h2>
+    <div class="guide">
+      <div class="badge"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 17 H7 V13 H11 V9 H15 V5 H18" fill="none" stroke="var(--accent)" stroke-width="1.6"/></svg></div>
+      <div>
+        <div class="who">導覽員</div>
+        <p>新聞說「失明老人重見光明」時，很容易讓人以為技術已經成熟。其實新醫材要一層層累積證據才能上市。<b>點擊每一階</b>看 CorNeat KPro 走到哪裡。</p>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="ladder" id="ladder"></div>
+      <div class="card info" id="info6" aria-live="polite"></div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h3 style="font-size:17px;margin-bottom:6px">兩份已發表研究的數據</h3>
+      <div style="overflow-x:auto">
+      <table class="dtable">
+        <thead><tr><th></th><th>兔子研究（2021）</th><th>首例人體（2022 線上發表）</th></tr></thead>
+        <tbody>
+          <tr><td>對象</td><td><span class="big">8</span> 隻兔子</td><td><span class="big">1</span> 位病人</td></tr>
+          <tr><td>追蹤時間</td><td><span class="big">6</span> 個月</td><td><span class="big">12</span> 個月</td></tr>
+          <tr><td>主要結果</td><td>期末留存率 <span class="big">87.5%</span><br><span class="note">組織切片可見纖維母細胞與膠原纖維進入裙邊</span></td><td>視力：只能看見手動 → <span class="big">1/16</span><br><span class="note">人工角膜位置維持良好，眼壓觸診正常</span></td></tr>
+          <tr><td>出現的問題</td><td>1 隻術後發生眼內炎而退出</td><td>局部結膜回縮（多在鼻側，約 4–5 mm），追蹤期間持續存在</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <p class="note" style="margin-top:10px">「1/16」代表病人站在 1 公尺外看得到的視標，正常人在 16 公尺外就看得到。這比手術前改善很多，但仍屬於低視力。</p>
+      <p class="src" style="margin-top:6px">來源：<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8330828/" target="_blank" rel="noopener">Litvin et al., Cornea 2021</a>、<a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC10169863/" target="_blank" rel="noopener">Bahar et al., Eye 2023</a></p>
+    </div>
+  </section>
+
+  <!-- STOP 7 -->
+  <section class="stop" data-stop="7" data-title="臨床與監管時間軸" data-desc="從兔子實驗到召回公告">
+    <div class="eyebrow">第 7 站｜臨床與監管時間軸</div>
+    <h2>2021 → 2026：一路走來</h2>
+    <div class="guide">
+      <div class="badge"><svg width="20" height="20" viewBox="0 0 20 20"><line x1="4" y1="3" x2="4" y2="17" stroke="var(--accent)" stroke-width="1.6"/><circle cx="4" cy="6" r="2" fill="var(--accent)"/><circle cx="4" cy="14" r="2" fill="var(--warn)"/><line x1="8" y1="6" x2="17" y2="6" stroke="var(--accent)" stroke-width="1.6"/><line x1="8" y1="14" x2="15" y2="14" stroke="var(--warn)" stroke-width="1.6"/></svg></div>
+      <div>
+        <div class="who">導覽員</div>
+        <p>點擊每個事件展開細節和原始資料。注意兩個臨床試驗的狀態：一個已終止，一個已停止招募。</p>
+      </div>
+    </div>
+    <div class="tl" id="timeline"></div>
+    <p class="note" style="margin-top:14px;max-width:80ch">臨床試驗「終止」本身不代表技術失敗，也不代表成功。登錄頁標示的終止原因是「贊助者決定」。要判斷結果，需要看正式公布的試驗數據。</p>
+  </section>
+
+  <!-- STOP 8 -->
+  <section class="stop" data-stop="8" data-title="安全性疑慮" data-desc="召回公告指出的問題" data-alert="1">
+    <div class="eyebrow" style="color:var(--warn)">第 8 站｜安全性疑慮</div>
+    <h2>2026 年 6 月：加拿大衛生部召回</h2>
+    <div class="guide warn">
+      <div class="badge"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M10 2 L18.5 17 H1.5Z" fill="none" stroke="var(--warn)" stroke-width="1.6"/><line x1="10" y1="7" x2="10" y2="12" stroke="var(--warn)" stroke-width="1.8"/><circle cx="10" cy="14.5" r="1" fill="var(--warn)"/></svg></div>
+      <div>
+        <div class="who">導覽員</div>
+        <p>還記得第 3 站提到，結膜要蓋住裙邊嗎？加拿大衛生部的公告指出，累積的全球臨床研究資料出現安全疑慮，而問題正是從這裡開始的。<b>依序點擊下面四個環節</b>，在圖上看它們怎麼連在一起。</p>
+      </div>
+    </div>
+    <div class="chain" id="chain"></div>
+    <div class="grid2">
+      <div class="card eyebox" id="eye8"></div>
+      <div class="card info" id="info8" aria-live="polite"></div>
+    </div>
+    <div class="card" style="margin-top:20px">
+      <h3 style="font-size:17px;margin-bottom:4px">公告重點</h3>
+      <div class="recall">
+        <div><div class="k">發布機關</div><div class="v">加拿大衛生部</div></div>
+        <div><div class="k">召回日期</div><div class="v">2026-06-17</div></div>
+        <div><div class="k">召回分類</div><div class="v">Type II</div></div>
+        <div><div class="k">型號／目錄編號</div><div class="v">ITA 359439</div></div>
+        <div><div class="k">公告編號</div><div class="v">RA-82215</div></div>
+      </div>
+      <div class="prose" style="margin-top:14px">
+        <p><b>Type II 是什麼意思？</b>依加拿大的分類，Type II 指使用該產品可能造成暫時性的健康不良影響，或造成嚴重後果的可能性較低。最嚴重的是 Type I。</p>
+        <p><b>怎麼解讀？</b>公告依據的是累積的研究資料，不代表每位植入者都會發生這些併發症，但這些風險也不應被淡化。若你或家人曾參與相關臨床研究，請與主治眼科醫師討論後續追蹤。</p>
+      </div>
+      <p class="src" style="margin-top:10px">來源：<a href="https://recalls-rappels.canada.ca/en/alert-recall/corneat-kpro" target="_blank" rel="noopener">加拿大衛生部召回公告：CorNeat KPro</a></p>
+    </div>
+  </section>
+
+  <!-- STOP 9 -->
+  <section class="stop" data-stop="9" data-title="延伸閱讀" data-desc="15 份資料，可依類別篩選">
+    <div class="eyebrow">第 9 站｜延伸閱讀</div>
+    <h2>想深入了解？從原始資料讀起</h2>
+    <div class="guide">
+      <div class="badge"><svg width="20" height="20" viewBox="0 0 20 20"><path d="M3 4 H9 Q10 4 10 5 V17 Q10 16 9 16 H3Z M17 4 H11 Q10 4 10 5 V17 Q10 16 11 16 H17Z" fill="none" stroke="var(--accent)" stroke-width="1.4"/></svg></div>
+      <div>
+        <div class="who">導覽員</div>
+        <p>導覽到這裡結束。閱讀時可以留意每份資料的性質：公司官方說法、同行評審論文、試驗登錄和政府公告，可信度和目的各不相同。</p>
+      </div>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div class="srcgrid" id="srcgrid"></div>
+    <div class="disclaimer">
+      <p>本導覽整理自公開資料（資料整理日期：2026 年 11 月 17 日），僅供科普與學習參考，不構成醫療建議。CorNeat KPro 為研究性醫療器材，未獲准商業銷售。示意圖為自行繪製的簡化圖，比例與細節不代表實際產品。</p>
+    </div>
+    <div style="margin-top:18px"><button class="btn" data-go="1">↺ 回到開場</button></div>
+  </section>
+
+  <div class="nav">
+    <button class="btn" id="prev">← 上一站</button>
+    <button class="btn primary" id="next">下一站 →</button>
+  </div>
+  </main>
+</div>
+
+<script>
+(function(){
+"use strict";
+const $ = (s, r=document) => r.querySelector(s);
+const $$ = (s, r=document) => Array.from(r.querySelectorAll(s));
+const NS = "http://www.w3.org/2000/svg";
+
+/* ---------- geometry for the eye cross-section ---------- */
+const C = {x:300, y:380};
+function arcPts(R, dx0, dx1, n=30){
+  const pts=[];
+  for(let i=0;i<=n;i++){
+    const dx = dx0 + (dx1-dx0)*i/n;
+    pts.push([C.x+dx, C.y-Math.sqrt(R*R-dx*dx)]);
+  }
+  return pts;
+}
+// cornea dome: quadratic from (190,155) via (300,40) to (410,155)
+function domePt(t){ return [190+220*t, 155-230*t+230*t*t]; }
+function domePts(t0,t1,off=0,n=30){
+  const pts=[];
+  for(let i=0;i<=n;i++){
+    const t=t0+(t1-t0)*i/n;
+    const [x,y]=domePt(t);
+    // normal (outward = up)
+    const dx=220, dy=-230+460*t;
+    const len=Math.hypot(dx,dy);
+    pts.push([x + off*(dy/len), y - off*(dx/len)]);
+  }
+  return pts;
+}
+const P = pts => "M"+pts.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join(" L");
+
+function eyeSVG(mode, o={}){
+  const sel = o.sel || "";
+  const retract = !!o.retract;
+  const hl = o.hl || "";       // highlight for stop 8
+  const labels = o.labels !== false;
+  const part = (id, inner, hitPath) =>
+    `<g class="part${sel===id?' sel':''}" data-part="${id}" tabindex="0" role="button" aria-label="${PARTS[id]?PARTS[id].name:id}">${hitPath?`<path class="hit" d="${hitPath}"/>`:''}${inner}</g>`;
+
+  let s = `<svg viewBox="0 0 600 330" xmlns="${NS}" role="img" aria-label="${mode==='kpro'?'CorNeat KPro 植入後眼球前段剖面示意圖':'傳統角膜移植眼球前段剖面示意圖'}">`;
+  s += `<defs>
+    <pattern id="fib-${o.uid}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(35)"><line x1="0" y1="0" x2="0" y2="8" stroke="var(--skirt)" stroke-width="2"/></pattern>
+    <radialGradient id="glass-${o.uid}" cx=".4" cy=".3" r=".8"><stop offset="0" stop-color="#ffffff" stop-opacity=".95"/><stop offset="1" stop-color="var(--cornea)" stop-opacity=".55"/></radialGradient>
+  </defs>`;
+  // interior
+  s += `<circle cx="${C.x}" cy="${C.y}" r="243" fill="var(--eye-in)"/>`;
+  // anterior chamber label area
+  // iris & lens
+  s += part("iris", `<path class="vis" d="M196,190 Q235,186 272,196" stroke="var(--iris)" stroke-width="9" fill="none" stroke-linecap="round"/><path class="vis" d="M328,196 Q365,186 404,190" stroke="var(--iris)" stroke-width="9" fill="none" stroke-linecap="round"/><ellipse class="vis" cx="300" cy="222" rx="58" ry="22" fill="var(--surface)" stroke="var(--line)" stroke-width="2"/>`, "M196,190 Q300,200 404,190");
+  // sclera
+  const scL = arcPts(250,-110,-240), scR = arcPts(250,110,240);
+  s += part("sclera", `<path class="vis" d="${P(scL)}" stroke="var(--line)" stroke-width="17" fill="none"/><path d="${P(scL)}" stroke="var(--sclera)" stroke-width="13" fill="none"/><path class="vis" d="${P(scR)}" stroke="var(--line)" stroke-width="17" fill="none"/><path d="${P(scR)}" stroke="var(--sclera)" stroke-width="13" fill="none"/>`, P(scL)+" "+P(scR));
+
+  if(mode==="donor"){
+    s += part("host", `<path class="vis" d="${P(domePts(0,1))}" stroke="var(--cornea)" stroke-width="11" fill="none" stroke-linecap="round" opacity=".55"/>`, P(domePts(0,0.2))+" "+P(domePts(0.8,1)));
+    const g = domePts(0.2,0.8);
+    let sut="";
+    [0.2,0.8].forEach(t=>{ const [x,y]=domePt(t); sut+=`<line x1="${x-5}" y1="${y-9}" x2="${x+5}" y2="${y+9}" stroke="var(--ink)" stroke-width="1.6"/><line x1="${x+5}" y1="${y-9}" x2="${x-5}" y2="${y+9}" stroke="var(--ink)" stroke-width="1.6"/>`; });
+    s += part("graft", `<path class="vis" d="${P(g)}" stroke="var(--cornea)" stroke-width="12" fill="none"/>${sut}`, P(g));
+    s += part("conj", `<path class="vis" d="${P(arcPts(262,-118,-250))}" stroke="var(--conj)" stroke-width="4" fill="none"/><path class="vis" d="${P(arcPts(262,118,250))}" stroke="var(--conj)" stroke-width="4" fill="none"/>`, P(arcPts(262,-118,-250))+" "+P(arcPts(262,118,250)));
+    if(labels){
+      s += lbl(300,34,"捐贈角膜片",300,82);
+      s += lbl(8,90,"病人自己的角膜邊緣",200,150,"start",120,95);
+      s += lbl(592,90,"縫線",366,112,"end",560,95);
+      s += lbl(8,160,"結膜",108,194,"start",36,165);
+      s += lbl(470,300,"鞏膜（眼白）",532,290,"end",474,296);
+      s += lbl(300,272,"虹膜與水晶體",300,246,"middle",300,258);
+    }
+  } else {
+    // host rim
+    s += part("host", `<path class="vis" d="${P(domePts(0,0.26))}" stroke="var(--cornea)" stroke-width="11" fill="none" stroke-linecap="round" opacity=".55"/><path class="vis" d="${P(domePts(0.74,1))}" stroke="var(--cornea)" stroke-width="11" fill="none" stroke-linecap="round" opacity=".55"/>`, P(domePts(0,0.26))+" "+P(domePts(0.74,1)));
+    // skirt
+    const skL = domePts(0.27,0.02,9).concat(arcPts(257,-112,-205));
+    const skR = domePts(0.73,0.98,9).concat(arcPts(257,112,205));
+    const skirtVis = (pts)=>`<path d="${P(pts)}" stroke="var(--skirt)" stroke-opacity=".28" stroke-width="9" fill="none" stroke-linejoin="round"/><path class="vis" d="${P(pts)}" stroke="var(--skirt)" stroke-width="9" fill="none" stroke-dasharray="1.5 2.5" stroke-linejoin="round"/>`;
+    s += part("skirt", skirtVis(skL)+skirtVis(skR), P(skL)+" "+P(skR));
+    // optic
+    s += part("optic", `<path class="vis" d="M248,152 L248,110 Q300,70 352,110 L352,152 Q300,162 248,152Z" fill="url(#glass-${o.uid})" stroke="var(--accent)" stroke-width="2"/><path d="M262,104 Q290,88 316,92" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".8"/>`, "M248,130 L352,130");
+    // groove marker
+    s += part("groove", `<path class="vis" d="M240,138 L250,128 M360,138 L350,128" stroke="var(--accent)" stroke-width="3" fill="none"/>`, "M236,140 L252,126 M364,140 L348,126");
+    // conjunctiva
+    const startDx = retract ? 165 : 112;
+    const cL = arcPts(266,-startDx,-252), cR = arcPts(266,112,252);
+    const exposeHL = (hl==="retract"||hl==="expose"||hl==="seal"||hl==="infect");
+    s += part("conj", `<path class="vis" d="${P(cL)}" stroke="var(--conj)" stroke-width="${hl==='retract'?6:4}" fill="none" stroke-linecap="round"/><path class="vis" d="${P(cR)}" stroke="var(--conj)" stroke-width="4" fill="none" stroke-linecap="round"/>`, P(cL)+" "+P(cR));
+    if(retract){
+      // exposed zone
+      const ex = arcPts(262,-112,-163);
+      s += `<path d="${P(ex)}" stroke="var(--warn)" stroke-width="${hl==='expose'?18:14}" stroke-opacity="${hl==='expose'?0.45:0.25}" fill="none" stroke-linecap="round"/>`;
+      // retraction arrow
+      const [ax,ay] = arcPts(272,-118,-118,1)[0], [bx,by]=arcPts(272,-160,-160,1)[0];
+      s += `<path d="M${ax},${ay} L${bx},${by}" stroke="var(--warn)" stroke-width="2" fill="none" marker-end="url(#arr-${o.uid})"/>`;
+      s += `<defs><marker id="arr-${o.uid}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10z" fill="var(--warn)"/></marker></defs>`;
+      if(hl==="seal"||hl==="infect"){
+        s += `<path d="M215,150 Q232,158 246,150" stroke="var(--warn)" stroke-width="2.5" stroke-dasharray="4 3" fill="none"/>`;
+        s += `<text x="150" y="190" class="lbl" style="fill:var(--warn)" text-anchor="middle">邊緣密封變弱</text>`;
+      }
+      if(hl==="infect"){
+        // microbes path
+        s += `<path d="M150,96 Q205,120 236,165 Q260,185 280,176" stroke="var(--warn)" stroke-width="2" stroke-dasharray="2 4" fill="none" marker-end="url(#arr-${o.uid})"/>`;
+        [[150,96],[162,102],[143,104]].forEach(([x,y])=>{ s+=`<circle cx="${x}" cy="${y}" r="4" fill="var(--warn)" opacity=".85"/>`; });
+        s += `<text x="300" y="176" class="lbl" style="fill:var(--warn)">眼內感染風險</text>`;
+      }
+      if(labels){ s += `<text x="122" y="104" class="lbl" style="fill:var(--warn)" text-anchor="middle">${hl==='retract'?'結膜往後縮':'裙邊外露'}</text>`; }
+    }
+    if(labels && !retract){
+      s += lbl(300,34,"PMMA 光學鏡片",300,78);
+      s += lbl(8,80,"EverMatrix 纖維裙邊",172,150,"start",100,85);
+      s += lbl(592,60,"後方凹槽（卡住剩餘角膜）",356,132,"end",520,65);
+      s += lbl(8,160,"結膜（蓋住裙邊）",108,194,"start",60,165);
+      s += lbl(470,300,"鞏膜（眼白）",532,290,"end",474,296);
+      s += lbl(300,272,"虹膜與水晶體",300,246,"middle",300,258);
+    } else if (labels && retract){
+      s += lbl(300,34,"PMMA 光學鏡片",300,78);
+    }
+  }
+  s += `</svg>`;
+  return s;
+}
+function lbl(tx,ty,text,px,py,anchor="middle",lx,ly){
+  if(lx===undefined){ lx=tx; ly=ty+5; }
+  return `<path class="leader" d="M${lx},${ly} L${px},${py}"/><text class="lbl" x="${tx}" y="${ty}" text-anchor="${anchor}">${text}</text>`;
+}
+
+const PARTS = {
+  optic:{name:"PMMA 光學鏡片", tag:"KPro｜透明的窗", body:"位在正中央，取代原本混濁的角膜，讓光線進入眼睛。材料是 PMMA（聚甲基丙烯酸甲酯），一種堅硬透明的醫用塑膠，人工水晶體也常用這種材料。光學區直徑約 6.5 mm。"},
+  skirt:{name:"EverMatrix 纖維裙邊", tag:"KPro｜關鍵創新", body:"鏡片外圍的一圈多孔纖維網，由醫療級聚氨酯以靜電紡絲做成，不會被身體分解。它鋪在眼白上、結膜下方，讓周圍組織的細胞長進孔隙裡，把裝置牢牢固定在眼球壁上。它不需要和角膜組織結合，所以不用捐贈角膜當「載體」。第 4 站會放大來看。"},
+  groove:{name:"後方凹槽", tag:"KPro｜密封與置中", body:"鏡片邊緣後方有一圈凹槽。手術時把病人剩餘的角膜邊緣卡進凹槽，讓裝置置中，並形成防水的密封。"},
+  host:{name:"病人自己的角膜邊緣", tag:"病人組織", body:"中央混濁的角膜被切除後，留下的外圈角膜。在 KPro 手術中，它被卡進鏡片後方的凹槽；在傳統移植中，捐贈角膜片會縫在這圈組織上。"},
+  conj:{name:"結膜", tag:"病人組織｜要特別記住", body:"覆蓋在眼白表面的一層薄膜。KPro 手術最後會把結膜蓋回裙邊上方，像一層保護膜。結膜能不能長期蓋好裙邊，關係到眼睛能否維持密封，第 8 站會回到這裡。"},
+  sclera:{name:"鞏膜（眼白）", tag:"病人組織", body:"眼球堅韌的外壁。KPro 的裙邊就鋪在鞏膜上、結膜下方，周圍組織長入裙邊後，裝置就和眼球壁結合在一起。"},
+  iris:{name:"虹膜與水晶體", tag:"眼內構造", body:"虹膜控制瞳孔大小，後面的水晶體負責對焦。人工角膜只取代最前面的角膜，眼內構造維持原樣。"},
+  graft:{name:"捐贈角膜片", tag:"傳統移植｜需要捐贈者", body:"從捐贈者眼睛取下的透明角膜，切成圓片後縫在病人的角膜邊緣上。它是活的組織，可能被身體排斥，也可能隨時間再次混濁；捐贈組織的供應也有限。"}
+};
+
+/* ---------- navigation ---------- */
+const stops = $$(".stop");
+const N = stops.length;
+let cur = 1;
+const visited = new Set([1]);
+const rail = $("#rail"), prog = $("#progress"), route = $("#route");
+stops.forEach(st=>{
+  const n = +st.dataset.stop, alert = st.dataset.alert;
+  const li = document.createElement("li");
+  li.innerHTML = `<button data-go="${n}" class="${alert?'alert':''}"><span class="n">${n}</span><span>${st.dataset.title}</span></button>`;
+  rail.appendChild(li);
+  const pb = document.createElement("button");
+  pb.dataset.go = n; pb.title = `第 ${n} 站：${st.dataset.title}`; pb.setAttribute("aria-label", pb.title);
+  prog.appendChild(pb);
+  if(n>1){
+    const rb = document.createElement("button");
+    rb.dataset.go = n; if(alert) rb.className="alert";
+    rb.innerHTML = `<span class="rn">第 ${n} 站</span><span class="rt">${st.dataset.title}</span><span class="rd">${st.dataset.desc}</span>`;
+    route.appendChild(rb);
+  }
+});
+function go(n, push=true){
+  n = Math.max(1, Math.min(N, n));
+  cur = n; visited.add(n);
+  stops.forEach(st=>st.classList.toggle("on", +st.dataset.stop===n));
+  $$("#rail button").forEach(b=>{ const k=+b.dataset.go; b.classList.toggle("on",k===n); b.classList.toggle("done",visited.has(k)&&k!==n); });
+  $$("#progress button").forEach(b=>{ const k=+b.dataset.go; b.classList.toggle("on",k===n); b.classList.toggle("done",k<n); });
+  $("#counter").textContent = `第 ${n} / ${N} 站`;
+  $("#prev").disabled = n===1;
+  const nx = $("#next");
+  if(n===N){ nx.textContent = "回到開場 ↺"; } else { nx.textContent = `下一站：${stops[n].dataset.title} →`; }
+  if(push){ try{ history.replaceState(null,"","#stop-"+n); }catch(e){} }
+  window.scrollTo({top:0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});
+}
+document.addEventListener("click", e=>{
+  const b = e.target.closest("[data-go]"); if(b){ go(+b.dataset.go); }
+});
+$("#prev").onclick = ()=>go(cur-1);
+$("#next").onclick = ()=>go(cur===N?1:cur+1);
+document.addEventListener("keydown", e=>{
+  if(e.target.matches("input,textarea")) return;
+  if(e.key==="ArrowRight") go(cur+1);
+  if(e.key==="ArrowLeft") go(cur-1);
+});
+function fromHash(){ const m = /^#stop-(\d)$/.exec(location.hash); return m? +m[1] : 1; }
+window.addEventListener("hashchange", ()=>go(fromHash(), false));
+
+/* ---------- stop 1 hero ---------- */
+$("#heroEye").innerHTML = eyeSVG("kpro",{uid:"h", labels:true});
+
+/* ---------- stop 2 window ---------- */
+const opR = $("#opacity"), fog = $("#fog"), winSvg = $("#window svg");
+function updFog(){
+  const v = +opR.value;
+  fog.style.opacity = (v/100*0.88).toFixed(2);
+  winSvg.style.filter = `blur(${(v*0.14).toFixed(1)}px)`;
+  $("#opLabel").textContent = v<10?"清澈":v<45?"輕度混濁":v<80?"明顯混濁":"嚴重混濁（只能看見手在晃動）";
+}
+opR.addEventListener("input", updFog); updFog();
+
+/* ---------- stop 3 interactive structure ---------- */
+let mode3 = "kpro", sel3 = "skirt";
+function render3(){
+  $("#eye3").innerHTML = eyeSVG(mode3,{uid:"e3", sel:sel3});
+  const p = PARTS[sel3];
+  $("#info3").innerHTML = `<div class="tag">${p.tag}</div><h3>${p.name}</h3><p>${p.body}</p><p class="note" style="margin-top:12px">點擊圖上其他部位繼續探索。</p>`;
+}
+function bindParts(container, cb){
+  container.addEventListener("click", e=>{ const g=e.target.closest(".part"); if(g) cb(g.dataset.part); });
+  container.addEventListener("keydown", e=>{ if((e.key==="Enter"||e.key===" ") && e.target.closest(".part")){ e.preventDefault(); cb(e.target.closest(".part").dataset.part); } });
+}
+bindParts($("#eye3"), id=>{ sel3=id; render3(); const el=$(`#eye3 [data-part="${id}"]`); if(el) el.focus(); });
+$$('[data-mode]').forEach(b=>b.addEventListener("click", ()=>{
+  mode3 = b.dataset.mode;
+  $$('[data-mode]').forEach(x=>x.classList.toggle("on", x===b));
+  sel3 = mode3==="kpro" ? "skirt" : "graft";
+  render3();
+}));
+render3();
+
+/* ---------- stop 4 microscopic integration ---------- */
+function rng(seed){ return ()=>{ seed=(seed*16807)%2147483647; return (seed-1)/2147483646; }; }
+const R4 = rng(42);
+const W=600, H=300, top0=70, top1=200;
+const fibers=[], cells=[], collagen=[], vessels=[];
+for(let i=0;i<70;i++){ const y=top0+R4()*(top1-top0), a=(R4()-.5)*1.2, x=R4()*W, L=60+R4()*120; fibers.push([x-Math.cos(a)*L/2, y-Math.sin(a)*L/2, x+Math.cos(a)*L/2, y+Math.sin(a)*L/2]); }
+for(let i=0;i<70;i++){ const d=R4(); const y=top0+6+d*(top1-top0-12); cells.push({x:10+R4()*(W-20), y, th: 0.08 + d*0.55 + R4()*0.12, r:(R4()-.5)*60}); }
+for(let i=0;i<34;i++){ const y=top0+10+R4()*(top1-top0-20), x=R4()*(W-80); collagen.push({x,y,th:0.32+R4()*0.5,len:50+R4()*70}); }
+for(let i=0;i<4;i++){ vessels.push({x:70+i*140+R4()*40, th:0.68+i*0.06}); }
+const STAGES = [
+  {p:0,   label:"植入當天", title:"裙邊是一張空的纖維網", body:"裝置剛放進去時，裙邊裡只有交錯的纖維和大量孔隙。上方是結膜與其下的結締組織（Tenon 囊），下方是眼白（鞏膜）。"},
+  {p:25,  label:"數週", title:"細胞開始往裡面移動", body:"纖維母細胞是負責修補組織的細胞。它們從上方的 Tenon 囊沿著纖維爬進裙邊，就像藤蔓沿著鷹架往上長。"},
+  {p:50,  label:"約 1–2 個月", title:"膠原纖維填進孔隙", body:"細胞在纖維之間分泌膠原纖維，也就是身體用來修補傷口的「天然膠水」。裙邊和周圍組織逐漸連成一體。"},
+  {p:75,  label:"數個月", title:"微血管穿過裙邊", body:"研發者在研討會報告中提到，組織切片可見微血管穿過裙邊。有血液供應，長進去的組織才能存活。"},
+  {p:100, label:"6 個月", title:"兔子研究的觀察", body:"兔子研究在 6 個月時做組織切片，觀察到纖維母細胞和膠原纖維進入裙邊的纖維結構，人工角膜與周圍組織整合。不過動物結果不能直接等同人體的長期表現。"}
+];
+const stagebar = $("#stagebar");
+STAGES.forEach(s=>{ const b=document.createElement("button"); b.textContent=s.label; b.dataset.p=s.p; b.onclick=()=>{ $("#time").value=s.p; render4(); }; stagebar.appendChild(b); });
+function render4(){
+  const p = +$("#time").value/100;
+  let s = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="裙邊放大示意：組織長入過程">`;
+  s += `<rect x="0" y="0" width="${W}" height="${top0-6}" fill="var(--conj)" opacity=".22"/>`;
+  s += `<text x="12" y="22" class="lbl">結膜與 Tenon 囊（細胞來源）</text>`;
+  s += `<rect x="0" y="${top0-6}" width="${W}" height="${top1-top0+12}" fill="var(--surface)"/>`;
+  s += `<rect x="0" y="${top1+6}" width="${W}" height="${H-top1-6}" fill="var(--sclera)" stroke="var(--line)"/>`;
+  s += `<text x="12" y="${H-14}" class="lbl lbl-muted">鞏膜（眼白）</text>`;
+  fibers.forEach(f=>{ s+=`<line x1="${f[0].toFixed(1)}" y1="${f[1].toFixed(1)}" x2="${f[2].toFixed(1)}" y2="${f[3].toFixed(1)}" stroke="var(--skirt)" stroke-width="1.6" opacity=".75"/>`; });
+  collagen.forEach(c=>{ if(p>=c.th){ const a=Math.min(1,(p-c.th)/0.12); s+=`<path d="M${c.x},${c.y} q${c.len/4},-6 ${c.len/2},0 t${c.len/2},0" stroke="#E7859B" stroke-width="2.4" fill="none" opacity="${(a*0.9).toFixed(2)}"/>`; } });
+  vessels.forEach(v=>{ if(p>=v.th){ const a=Math.min(1,(p-v.th)/0.1); const len=(top1+6)*a; s+=`<path d="M${v.x},0 C${v.x+20},${len*0.3} ${v.x-20},${len*0.6} ${v.x+8},${len}" stroke="#C9473F" stroke-width="3" fill="none" opacity=".85"/>`; } });
+  cells.forEach(c=>{ if(p>=c.th){ const a=Math.min(1,(p-c.th)/0.08); const y=top0-20+(c.y-top0+20)*a; s+=`<ellipse cx="${c.x.toFixed(1)}" cy="${y.toFixed(1)}" rx="7" ry="3.6" transform="rotate(${c.r.toFixed(0)} ${c.x.toFixed(1)} ${y.toFixed(1)})" fill="#E8A23A" stroke="#9A5E0E" stroke-width=".8"/>`; } });
+  s += `<text x="${W-12}" y="${top0+16}" class="lbl" text-anchor="end" style="font-weight:700">EverMatrix 裙邊（放大）</text>`;
+  s += `</svg>`;
+  $("#micro").innerHTML = s;
+  let st = STAGES[0];
+  STAGES.forEach(x=>{ if(p*100 >= x.p - 12) st = x; });
+  $$("#stagebar button").forEach(b=>b.classList.toggle("on", +b.dataset.p===st.p));
+  $("#info4").innerHTML = `<div class="tag">${st.label}（示意）</div><h3>${st.title}</h3><p>${st.body}</p>`;
+}
+$("#time").addEventListener("input", render4); render4();
+
+/* ---------- stop 5 surgery top view ---------- */
+const SURG = [
+  {t:"打開結膜", d:"沿著角膜外緣把結膜環狀切開一圈（360° 結膜切開），往後推開，露出底下的眼白。之後裙邊會鋪在這個位置。"},
+  {t:"刮除上皮、做記號", d:"刮掉角膜表面的上皮，再用專用標記工具在角膜上蓋印，標出縫線位置、預留的通道口和要切除的範圍。"},
+  {t:"預先穿好三條縫線", d:"先在眼內注入黏彈劑維持眼球形狀，再把三條不可吸收的縫線穿過人工角膜和角膜鞏膜交界處。此時裝置還沒放下。"},
+  {t:"切除中央角膜", d:"用直徑 7 mm 的環鑽切下中央混濁的角膜。這時眼睛是「打開」的，是整台手術最需要把握時間的階段。"},
+  {t:"放入裝置、密封", d:"拉緊縫線，讓人工角膜貼上眼球壁，眼睛隨即重新封閉。再把剩餘角膜的邊緣卡進鏡片後方的凹槽。"},
+  {t:"蓋回結膜", d:"把結膜拉回來蓋住纖維裙邊，用可吸收縫線縫合，再塗上纖維蛋白膠封合。接下來就等組織慢慢長進裙邊（第 4 站）。"}
+];
+let s5 = 0;
+const stepsEl = $("#steps");
+SURG.forEach((x,i)=>{ const b=document.createElement("button"); b.innerHTML=`<span class="n">${i+1}</span><span>${x.t}</span>`; b.onclick=()=>{ s5=i; render5(); }; stepsEl.appendChild(b); });
+function render5(){
+  const c=110; let g=`<svg viewBox="0 0 220 220" role="img" aria-label="手術步驟 ${s5+1} 正面示意圖">`;
+  g += `<circle cx="${c}" cy="${c}" r="104" fill="var(--sclera)" stroke="var(--line)" stroke-width="2"/>`;
+  // conjunctiva overlay
+  const conjInner = s5===0||s5>=1&&s5<5 ? 84 : (s5===5? 40 : 60);
+  if(s5===0){ g += ring(c,104,84,"var(--conj)",.35); g += `<circle cx="${c}" cy="${c}" r="60" fill="none" stroke="var(--warn)" stroke-width="2" stroke-dasharray="4 3"/>`; }
+  else if(s5<5){ g += ring(c,104,84,"var(--conj)",.35); }
+  // cornea + iris
+  if(s5<3 || s5===3){
+    g += `<circle cx="${c}" cy="${c}" r="58" fill="var(--cornea)" opacity="${s5>=1?0.25:0.4}"/>`;
+    g += `<circle cx="${c}" cy="${c}" r="42" fill="var(--iris)" opacity=".55"/><circle cx="${c}" cy="${c}" r="16" fill="var(--ink)" opacity=".7"/>`;
+    g += `<circle cx="${c}" cy="${c}" r="58" fill="#fff" opacity="${s5>=1?0.05:0.35}"/>`;
+  }
+  if(s5===1||s5===2){
+    g += `<circle cx="${c}" cy="${c}" r="35" fill="none" stroke="var(--accent)" stroke-width="1.6" stroke-dasharray="3 3"/>`;
+    [90,210,330].forEach(a=>{ const [x,y]=pol(c,48,a); g+=`<circle cx="${x}" cy="${y}" r="3.5" fill="var(--accent)"/>`; });
+    [45,135,225,315].forEach(a=>{ const [x,y]=pol(c,30,a); g+=`<rect x="${x-2.5}" y="${y-2.5}" width="5" height="5" fill="none" stroke="var(--accent)" stroke-width="1.3"/>`; });
+  }
+  if(s5===2){
+    g += ring(c,72,34,"var(--skirt)",.18) + `<circle cx="${c}" cy="${c}" r="33" fill="var(--cornea)" opacity=".15" stroke="var(--accent)" stroke-dasharray="2 2"/>`;
+    [90,210,330].forEach(a=>{ const [x1,y1]=pol(c,28,a),[x2,y2]=pol(c,80,a); g+=`<path d="M${x1},${y1} L${x2},${y2}" stroke="var(--ink)" stroke-width="1.5"/>`; });
+  }
+  if(s5===3){
+    g += `<circle cx="${c}" cy="${c}" r="35" fill="var(--ink)" opacity=".88"/><circle cx="${c}" cy="${c}" r="35" fill="none" stroke="var(--warn)" stroke-width="2"/>`;
+    g += `<text x="${c}" y="${c+4}" text-anchor="middle" class="lbl" style="fill:var(--surface);font-size:12px">7 mm</text>`;
+    [90,210,330].forEach(a=>{ const [x1,y1]=pol(c,38,a),[x2,y2]=pol(c,80,a); g+=`<path d="M${x1},${y1} L${x2},${y2}" stroke="var(--ink)" stroke-width="1.5"/>`; });
+  }
+  if(s5>=4){
+    g += `<circle cx="${c}" cy="${c}" r="58" fill="var(--cornea)" opacity=".2"/>`;
+    g += ring(c,74,34,"var(--skirt)",.35);
+    for(let a=0;a<360;a+=12){ const [x1,y1]=pol(c,36,a),[x2,y2]=pol(c,72,a+20); g+=`<path d="M${x1},${y1} L${x2},${y2}" stroke="var(--skirt)" stroke-width="1" opacity=".7"/>`; }
+    g += `<circle cx="${c}" cy="${c}" r="33" fill="var(--eye-in)" stroke="var(--accent)" stroke-width="2.5"/><circle cx="${c}" cy="${c}" r="16" fill="var(--ink)" opacity=".7"/><path d="M${c-18},${c-14} Q${c-6},${c-24} ${c+8},${c-22}" stroke="#fff" stroke-width="2.5" fill="none" opacity=".8"/>`;
+    [90,210,330].forEach(a=>{ const [x,y]=pol(c,52,a); g+=`<circle cx="${x}" cy="${y}" r="3" fill="var(--ink)"/>`; });
+  }
+  if(s5===5){
+    g += ring(c,104,38,"var(--conj)",.42);
+    for(let a=0;a<360;a+=30){ const [x,y]=pol(c,40,a); g+=`<circle cx="${x}" cy="${y}" r="1.8" fill="var(--ink)"/>`; }
+  }
+  g += `</svg>`;
+  $("#surgview").innerHTML = g;
+  $("#surgtext").innerHTML = `<b>步驟 ${s5+1}／${SURG.length}：${SURG[s5].t}</b><br>${SURG[s5].d}`;
+  $$("#steps button").forEach((b,i)=>b.classList.toggle("on", i===s5));
+  $("#sPrev").disabled = s5===0; $("#sNext").disabled = s5===SURG.length-1;
+}
+function pol(c,r,a){ const t=(a-90)*Math.PI/180; return [ (c+r*Math.cos(t)).toFixed(1), (c+r*Math.sin(t)).toFixed(1) ]; }
+function ring(c,R,r,color,op){ return `<path d="M${c-R},${c} a${R},${R} 0 1,0 ${2*R},0 a${R},${R} 0 1,0 ${-2*R},0 M${c-r},${c} a${r},${r} 0 1,1 ${2*r},0 a${r},${r} 0 1,1 ${-2*r},0" fill="${color}" fill-opacity="${op}" fill-rule="evenodd"/>`; }
+$("#sPrev").onclick=()=>{ if(s5>0){s5--;render5();} };
+$("#sNext").onclick=()=>{ if(s5<SURG.length-1){s5++;render5();} };
+render5();
+
+/* ---------- stop 6 evidence ladder ---------- */
+const LADDER = [
+  {lv:"第 1 階", t:"設計與實驗室測試", st:"已完成", cls:"has", d:"材料、結構設計與專利。", detail:"CorNeat Vision 由 Gilad Litvin 醫師發明此裝置，並申請多項專利。這一階證明「做得出來」，還不能說明對人是否安全有效。"},
+  {lv:"第 2 階", t:"動物研究", st:"已發表", cls:"has", d:"8 隻兔子，追蹤 6 個月。", detail:"兔子研究顯示手術可行、材料與組織相容，期末留存率 87.5%（7/8），1 隻因術後眼內炎退出。組織切片可見細胞與膠原進入裙邊。動物眼睛和人類不同，結果不能直接套用到人身上。"},
+  {lv:"第 3 階", t:"首例人體病例", st:"已發表", cls:"has", d:"1 位病人，追蹤 12 個月。", detail:"一位多次角膜移植失敗、雙眼角膜混濁的病人接受植入。12 個月時視力從只能看見手動改善到 1/16，但出現局部結膜回縮。論文作者明確表示，需要更多病例和更長追蹤才能證明長期安全性與有效性。研究由 CorNeat 資助，作者之一是發明人。"},
+  {lv:"第 4 階", t:"小型臨床試驗", st:"已終止", cls:"has", d:"NCT04485858，收案 10 人。", detail:"首次人體臨床研究，評估不適合傳統角膜移植者的安全性與有效性，實際收案 10 人，追蹤規劃到術後 12 個月。登錄頁狀態為「終止」，原因為贊助者決定（最後更新 2024-09-24）。"},
+  {lv:"第 5 階", t:"多中心臨床試驗", st:"停止招募", cls:"has", d:"NCT05694247，多國多中心。", detail:"後續的多中心、單組、開放標籤研究，評估臨床安全性與性能。加拿大溫哥華研究機構頁面列出研究期間為 2023 年 12 月至 2026 年 12 月，已停止招募，術後安排 16 次追蹤訪視。"},
+  {lv:"第 6 階", t:"監管核准上市", st:"尚未", cls:"none", d:"目前未獲准商業銷售。", detail:"官方網站註明 CorNeat KPro 是研究性器材，未獲准商業銷售。2026 年 6 月加拿大衛生部發布召回公告（第 8 站）。官方網站上對上市時間的預測屬於公司說法，不是核准的證據。"}
+];
+let s6 = 2;
+const ladder = $("#ladder");
+LADDER.slice().reverse().forEach((x)=>{ const i=LADDER.indexOf(x); const b=document.createElement("button"); b.className=`rung ${x.cls}`; b.dataset.i=i; b.innerHTML=`<span class="lv">${x.lv}</span><span><span class="t">${x.t}</span><br><span class="d">${x.d}</span></span><span class="chip st ${x.st==='尚未'?'':x.st==='已終止'||x.st==='停止招募'?'warn':'info'}">${x.st}</span>`; b.onclick=()=>{ s6=i; render6(); }; ladder.appendChild(b); });
+function render6(){
+  $$(".rung").forEach(b=>{ b.style.boxShadow = (+b.dataset.i===s6)?"0 0 0 2px var(--accent)":""; });
+  const x=LADDER[s6];
+  $("#info6").innerHTML = `<div class="tag">${x.lv}｜${x.st}</div><h3>${x.t}</h3><p>${x.detail}</p>`;
+}
+render6();
+
+/* ---------- stop 7 timeline ---------- */
+const TL = [
+  {when:"2021 年初", what:"首例人體植入（以色列）", d:"以色列 Rabin Medical Center 的 Irit Bahar 教授為一位雙眼失明的病人植入 CorNeat KPro，是首例人體植入。", links:[["官方手術影片頁","https://www.corneat.com/kpro-fih-implantation"]]},
+  {when:"2021", what:"兔子研究發表於《Cornea》", d:"Litvin 等人發表 8 隻兔子、6 個月的植入研究，提供組織整合的切片證據。", links:[["PMC 全文","https://pmc.ncbi.nlm.nih.gov/articles/PMC8330828/"]]},
+  {when:"2021 年秋", what:"研討會報告前兩位病人", d:"發明人在美國白內障與屈光手術學會（ASCRS）年會報告前兩位病人追蹤 3–7 個月的情況，兩人術後前幾週都出現結膜回縮。這是研討會報告，不是同行評審論文。", links:[["EuroTimes 報導","https://escrs.org/channels/eurotimes-articles/a-better-artificial-cornea"]]},
+  {when:"2022-06", what:"首例人體論文線上發表（《Eye》）", d:"論文記錄 12 個月追蹤結果：視力由手動改善至 1/16，裝置位置良好，局部結膜回縮。正式刊於 2023 年第 37 卷。", links:[["PMC 全文","https://pmc.ncbi.nlm.nih.gov/articles/PMC10169863/"],["PubMed","https://pubmed.ncbi.nlm.nih.gov/35650323/"]]},
+  {when:"2023-12", what:"多中心臨床試驗開始（NCT05694247）", d:"多中心、單組、開放標籤研究，研究期間列為 2023 年 12 月至 2026 年 12 月，目前已停止招募。", links:[["ClinicalTrials.gov","https://clinicaltrials.gov/study/NCT05694247"],["VCHRI 研究頁","https://www.vchri.ca/research-study/evaluating-safety-and-performance-corneat-kpro-corneal-blindness"]]},
+  {when:"2024-09", what:"首次人體臨床研究標示終止（NCT04485858）", d:"實際收案 10 人，登錄頁狀態為 Terminated，原因標示為贊助者決定，最後更新 2024 年 9 月 24 日。", links:[["ClinicalTrials.gov","https://clinicaltrials.gov/study/NCT04485858"],["研究計畫書 PDF","https://cdn.clinicaltrials.gov/large-docs/58/NCT04485858/Prot_000.pdf"]], cls:"end"},
+  {when:"2026-06-17", what:"加拿大衛生部發布召回公告", d:"指出累積的全球臨床研究資料出現安全疑慮：結膜逐漸回縮、部分病例裝置暴露、難以維持眼球密封，以及相關的眼內感染風險。召回分類 Type II。", links:[["召回公告","https://recalls-rappels.canada.ca/en/alert-recall/corneat-kpro"]], cls:"alert"},
+  {when:"2026-12", what:"多中心試驗預定結束", d:"依研究機構頁面列出的研究期間。之後是否公布結果，可持續追蹤 ClinicalTrials.gov。", links:[["ClinicalTrials.gov","https://clinicaltrials.gov/study/NCT05694247"]], cls:"end"}
+];
+const tl = $("#timeline");
+TL.forEach((x,i)=>{
+  const d=document.createElement("div"); d.className=`tl-item ${x.cls||''}${i===TL.length-2?' open':''}`;
+  d.innerHTML = `<span class="dot"></span><button aria-expanded="${i===TL.length-2}"><span class="when">${x.when}</span><span class="what">${x.what}</span><span class="chev">›</span></button><div class="tl-detail"><p>${x.d}</p><p class="src">${x.links.map(l=>`<a href="${l[1]}" target="_blank" rel="noopener">${l[0]} ↗</a>`).join("　")}</p>${x.cls==='alert'?'<p><button class="btn" data-go="8" style="padding:6px 14px;font-size:14px">看第 8 站的說明 →</button></p>':''}</div>`;
+  d.querySelector("button").onclick=()=>{ d.classList.toggle("open"); d.querySelector("button").setAttribute("aria-expanded", d.classList.contains("open")); };
+  tl.appendChild(d);
+});
+
+/* ---------- stop 8 safety chain ---------- */
+const CHAIN = [
+  {k:"retract", n:"環節 1", t:"結膜逐漸回縮", d:"結膜原本應該蓋住整圈裙邊，但在部分病例中會慢慢往後縮。首例人體論文和研討會報告中，病人都出現過局部結膜回縮。"},
+  {k:"expose", n:"環節 2", t:"裙邊或裝置暴露", d:"結膜縮回後，原本被包覆的裙邊或裝置邊緣就露在眼睛表面，失去了那層保護膜。召回公告指出部分病例出現裝置暴露。"},
+  {k:"seal", n:"環節 3", t:"難以維持密封", d:"人工角膜和眼球壁之間要完全密封，眼睛內部才能和外界隔絕。公告提到，在這種情況下難以維持完整的眼球密封。"},
+  {k:"infect", n:"環節 4", t:"眼內感染風險", d:"密封出現缺口，外界的細菌就可能有路徑進入眼內，造成眼內感染（眼內炎），這是可能嚴重影響視力的併發症。兔子研究中也有 1 隻發生術後眼內炎。"}
+];
+let s8 = 0;
+const chain = $("#chain");
+CHAIN.forEach((x,i)=>{ const b=document.createElement("button"); b.innerHTML=`<span class="k">${x.n}</span><span class="t">${x.t}</span>`; b.onclick=()=>{ s8=i; render8(); }; chain.appendChild(b); });
+function render8(){
+  const x = CHAIN[s8];
+  $("#eye8").innerHTML = eyeSVG("kpro",{uid:"e8", retract:true, hl:x.k});
+  $$("#chain button").forEach((b,i)=>b.classList.toggle("on", i===s8));
+  $("#info8").innerHTML = `<div class="tag" style="color:var(--warn)">${x.n}／4</div><h3>${x.t}</h3><p>${x.d}</p>${s8<3?`<p style="margin-top:12px"><button class="btn" id="c8next" style="padding:6px 14px;font-size:14px">下一個環節 →</button></p>`:`<p class="note" style="margin-top:12px">這也說明了為什麼第 3 站的「結膜」是整個設計中的關鍵環節。</p>`}`;
+  const nb = $("#c8next"); if(nb) nb.onclick=()=>{ s8++; render8(); };
+}
+bindParts($("#eye8"), id=>{ if(id==="conj"){ s8=0; render8(); } if(id==="skirt"){ s8=1; render8(); } });
+render8();
+
+/* ---------- stop 9 sources ---------- */
+const CATS = {off:"官方資料", pap:"學術論文", tri:"臨床試驗", reg:"監管與安全", ext:"補充報導"};
+const SRC = [
+  {c:"off", t:"CorNeat KPro 官方產品介紹", s:"產品定位、主要構造與設計理念。頁面註明仍屬研究性器材，未獲准商業銷售。", u:"https://www.corneat.com/corneat-kpro"},
+  {c:"off", t:"CorNeat KPro 醫師技術資源", s:"納入／排除條件、裝置改良、臨床試驗與監管路徑。上市時間預測屬公司說法。", u:"https://www.corneat.com/cornaet-kpro-physicians-resources"},
+  {c:"off", t:"CorNeat KPro Device Features", s:"裝置特色、植入程序、EverMatrix 組織整合平台與組織切片等延伸主題。", u:"https://www.corneat.com/corneat-kpro-device-features"},
+  {c:"off", t:"Mode of Action 官方 3D 動畫", s:"以動畫說明光學鏡片、奈米纖維裙邊與組織長入的概念。屬原理示意。", u:"https://www.youtube.com/watch?v=J3x1vO_QkS4"},
+  {c:"off", t:"首次人體植入手術影片", s:"Rabin Medical Center 的 Irit Bahar 教授執行。含真實手術畫面。", u:"https://www.corneat.com/kpro-fih-implantation"},
+  {c:"pap", t:"首例人體植入論文（Eye, 2023）", s:"12 個月視力由手動改善至 1/16，裝置位置良好，記錄局部結膜回縮。單一病例。", u:"https://pmc.ncbi.nlm.nih.gov/articles/PMC10169863/"},
+  {c:"pap", t:"兔子眼球植入研究（Cornea, 2021）", s:"8 隻兔子追蹤 6 個月，留存率 87.5%，組織切片可見細胞與膠原進入裙邊。", u:"https://pmc.ncbi.nlm.nih.gov/articles/PMC8330828/"},
+  {c:"pap", t:"PubMed：首例人體論文書目頁", s:"作者、期刊、DOI 等書目資訊，可延伸查找相關研究。", u:"https://pubmed.ncbi.nlm.nih.gov/35650323/"},
+  {c:"tri", t:"NCT04485858 首次人體臨床研究", s:"實際收案 10 人，狀態為終止（贊助者決定），最後更新 2024-09-24。", u:"https://clinicaltrials.gov/study/NCT04485858"},
+  {c:"tri", t:"NCT04485858 研究計畫書（PDF）", s:"PMMA 光學鏡片與聚氨酯非織造網裙邊的材料說明、研究程序與安全性評估。", u:"https://cdn.clinicaltrials.gov/large-docs/58/NCT04485858/Prot_000.pdf"},
+  {c:"tri", t:"NCT05694247 多中心臨床研究", s:"多中心、單組、開放標籤研究，評估臨床安全性與性能。", u:"https://clinicaltrials.gov/study/NCT05694247"},
+  {c:"tri", t:"VCHRI：多中心研究介紹", s:"研究期間 2023/12–2026/12，已停止招募，術後 16 次追蹤訪視。", u:"https://www.vchri.ca/research-study/evaluating-safety-and-performance-corneat-kpro-corneal-blindness"},
+  {c:"reg", t:"加拿大衛生部召回公告（2026-06-17）", s:"結膜回縮、裝置暴露、密封困難與眼內感染風險。型號 ITA 359439，Type II。", u:"https://recalls-rappels.canada.ca/en/alert-recall/corneat-kpro"},
+  {c:"ext", t:"EuroTimes：A Better Artificial Cornea（2021）", s:"ASCRS 2021 研討會報告：裝置設計細節、手術步驟與前兩位病人的早期追蹤。", u:"https://escrs.org/channels/eurotimes-articles/a-better-artificial-cornea"},
+  {c:"ext", t:"CORDIS：歐盟 RESEE 計畫報告", s:"CorNeat 參與的歐盟計畫期中報告，含角膜盲流行病學數字。屬計畫方說法。", u:"https://cordis.europa.eu/project/id/190138640/reporting"}
+];
+let f9 = "all";
+const filters = $("#filters");
+[["all","全部"]].concat(Object.entries(CATS)).forEach(([k,v])=>{ const b=document.createElement("button"); b.textContent = k==="all"?`${v}（${SRC.length}）`:`${v}（${SRC.filter(s=>s.c===k).length}）`; b.dataset.f=k; b.onclick=()=>{ f9=k; render9(); }; filters.appendChild(b); });
+function render9(){
+  $$("#filters button").forEach(b=>b.classList.toggle("on", b.dataset.f===f9));
+  $("#srcgrid").innerHTML = SRC.filter(s=>f9==="all"||s.c===f9).map(s=>`<article class="srccard c-${s.c}"><span class="cat">${CATS[s.c]}</span><h3>${s.t}</h3><p>${s.s}</p><a href="${s.u}" target="_blank" rel="noopener">${s.u.replace(/^https:\/\//,"")}</a></article>`).join("");
+}
+render9();
+
+go(fromHash(), false);
+})();
+</script>
+</body>
+</html>
